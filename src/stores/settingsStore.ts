@@ -12,7 +12,7 @@ interface SettingsStore {
   loadSettings: () => Promise<void>;
 }
 
-export const useSettingsStore = create<SettingsStore>((set, get) => ({
+export const useSettingsStore = create<SettingsStore>((set) => ({
   // Default values
   ollamaEndpoint: "http://localhost:11434",
   theme: "auto",

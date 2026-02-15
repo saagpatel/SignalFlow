@@ -45,9 +45,13 @@ impl NodeExecutor for HttpRequestExecutor {
             .get("method")
             .and_then(|v| v.as_str())
             .unwrap_or("GET");
+        let timeout_ms = config
+            .get("timeoutMs")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(30_000);
 
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
+            .timeout(std::time::Duration::from_millis(timeout_ms))
             .build()
             .map_err(|e| AppError::Http(e.to_string()))?;
 
