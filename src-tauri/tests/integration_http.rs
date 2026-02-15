@@ -3,11 +3,13 @@ use signalflow_lib::nodes::input::HttpRequestExecutor;
 use signalflow_lib::nodes::NodeExecutor;
 use signalflow_lib::types::NodeValue;
 use std::collections::HashMap;
+use tokio::net::TcpListener;
+use tokio::time::{sleep, Duration};
 
 #[tokio::test]
 async fn test_http_get_request() {
     let executor = HttpRequestExecutor;
-    let mut inputs = HashMap::new();
+    let inputs = HashMap::new();
 
     let config = serde_json::json!({
         "url": "https://httpbin.org/get",
@@ -70,17 +72,27 @@ async fn test_http_timeout() {
     let executor = HttpRequestExecutor;
     let inputs = HashMap::new();
 
-    // httpbin.org/delay/31 will delay for 31 seconds, exceeding the 30s timeout
+    // Use a local socket that accepts connections but delays response.
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let server_task = tokio::spawn(async move {
+        if let Ok((_socket, _peer)) = listener.accept().await {
+            sleep(Duration::from_secs(2)).await;
+        }
+    });
+
     let config = serde_json::json!({
-        "url": "https://httpbin.org/delay/31",
+        "url": format!("http://{}/slow", addr),
         "method": "GET",
-        "headers": "{}"
+        "headers": "{}",
+        "timeoutMs": 100
     });
 
     let ctx = ExecutionContext::new();
     let result = executor.execute(inputs, config, &ctx).await;
+    server_task.abort();
 
-    // Should timeout after 30 seconds
+    // Should timeout quickly based on timeoutMs.
     assert!(result.is_err(), "Request should timeout");
 }
 

@@ -1,12 +1,12 @@
 mod commands;
-mod db;
-mod engine;
-mod error;
-mod nodes;
-mod ollama;
-mod sandbox;
+pub mod db;
+pub mod engine;
+pub mod error;
+pub mod nodes;
+pub mod ollama;
+pub mod sandbox;
 mod state;
-mod types;
+pub mod types;
 
 use tauri::Manager;
 use state::AppState;

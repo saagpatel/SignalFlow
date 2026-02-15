@@ -3,7 +3,6 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use tauri::ipc::Channel;
-use tokio::sync::RwLock;
 
 use crate::error::AppError;
 use crate::nodes::registry::NodeRegistry;

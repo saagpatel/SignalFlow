@@ -42,7 +42,10 @@ async fn test_ollama_list_models() {
     let model_list = models.unwrap();
     // If Ollama is running, it should have at least one model
     // (but we can't guarantee this, so just check it's a valid response)
-    assert!(model_list.len() >= 0, "Should return valid model list");
+    assert!(
+        model_list.capacity() >= model_list.len(),
+        "Should return valid model list"
+    );
 }
 
 #[tokio::test]

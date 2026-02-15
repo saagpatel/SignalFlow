@@ -1,5 +1,3 @@
-pub mod models;
-
 use crate::error::AppError;
 use serde::{Deserialize, Serialize};
 

@@ -3554,7 +3554,6 @@ dependencies = [
 name = "signalflow"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "petgraph",
  "regex",
@@ -3567,6 +3566,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
 ]
