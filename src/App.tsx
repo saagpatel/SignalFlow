@@ -4,11 +4,13 @@ import { FlowCanvas } from "./components/canvas/FlowCanvas";
 import { NodePalette } from "./components/palette/NodePalette";
 import { InspectorPanel } from "./components/panels/InspectorPanel";
 import { ExecutionPanel } from "./components/panels/ExecutionPanel";
+import { SettingsPanel } from "./components/panels/SettingsPanel";
 import { TopToolbar } from "./components/toolbar/TopToolbar";
 import { StatusBar } from "./components/toolbar/StatusBar";
 import { useUiStore } from "./stores/uiStore";
 import { useFlowStore } from "./stores/flowStore";
 import { useProjectStore } from "./stores/projectStore";
+import { useSettingsStore } from "./stores/settingsStore";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { ToastProvider } from "./components/shared/Toast";
 import { WelcomeScreen } from "./components/welcome/WelcomeScreen";
@@ -27,15 +29,20 @@ function AppInner() {
   const { run } = useExecution();
   const { save } = useSaveFlow();
   const { loadLastFlow } = useFlowManager();
+  const loadSettings = useSettingsStore((s) => s.loadSettings);
 
-  // Startup: load last flow or show welcome
+  // Settings modal state
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Startup: load settings and last flow
   const [startupDone, setStartupDone] = useState(false);
   useEffect(() => {
     if (!startupDone) {
       setStartupDone(true);
+      loadSettings();
       loadLastFlow();
     }
-  }, [startupDone, loadLastFlow]);
+  }, [startupDone, loadLastFlow, loadSettings]);
 
   // Mark dirty on any flow change
   const nodes = useFlowStore((s) => s.nodes);
@@ -120,7 +127,7 @@ function AppInner() {
 
   return (
     <div className="flex h-screen flex-col bg-canvas-bg">
-      <TopToolbar />
+      <TopToolbar onSettingsClick={() => setShowSettings(true)} />
 
       <div className="relative flex flex-1 overflow-hidden">
         {isPaletteOpen && (
@@ -150,6 +157,8 @@ function AppInner() {
       </div>
 
       <StatusBar />
+
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

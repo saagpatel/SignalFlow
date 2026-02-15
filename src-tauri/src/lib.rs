@@ -4,6 +4,7 @@ mod engine;
 mod error;
 mod nodes;
 mod ollama;
+mod sandbox;
 mod state;
 mod types;
 

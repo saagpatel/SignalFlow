@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use crate::engine::context::ExecutionContext;
 use crate::error::AppError;
 use crate::nodes::NodeExecutor;
+use crate::sandbox::evaluate_expression_with_scope;
 use crate::types::NodeValue;
 
 pub struct FilterExecutor;
@@ -18,41 +19,41 @@ impl NodeExecutor for FilterExecutor {
         &self,
         inputs: HashMap<String, NodeValue>,
         config: serde_json::Value,
-        _ctx: &ExecutionContext,
+        ctx: &ExecutionContext,
     ) -> Result<HashMap<String, NodeValue>, AppError> {
         let input = match inputs.get("input") {
             Some(NodeValue::Array(arr)) => arr.clone(),
-            _ => {
-                return Err(AppError::NodeExecution {
-                    node_id: String::new(),
-                    message: "Filter expects an array input".to_string(),
-                });
-            }
+            _ => return Err(ctx.error("Filter expects an array input").await),
         };
 
-        let field = config
-            .get("field")
+        let condition = config
+            .get("condition")
             .and_then(|v| v.as_str())
-            .unwrap_or("");
+            .unwrap_or("item !== null");
 
-        // Simple filtering: remove nulls, or filter by field existence
-        let filtered: Vec<NodeValue> = if field.is_empty() {
-            input
-                .into_iter()
-                .filter(|v| !matches!(v, NodeValue::Null))
-                .collect()
-        } else {
-            input
-                .into_iter()
-                .filter(|v| {
-                    if let NodeValue::Object(obj) = v {
-                        obj.contains_key(field)
-                    } else {
-                        false
-                    }
-                })
-                .collect()
-        };
+        // Evaluate condition for each item
+        let mut filtered = Vec::new();
+        for (index, item) in input.into_iter().enumerate() {
+            let mut scope = HashMap::new();
+            scope.insert("item".to_string(), item.clone());
+            scope.insert("index".to_string(), NodeValue::Number(index as f64));
+
+            match evaluate_expression_with_scope(condition, scope) {
+                Ok(NodeValue::Boolean(true)) => {
+                    filtered.push(item);
+                }
+                Ok(NodeValue::Boolean(false)) => {
+                    // Skip this item
+                }
+                Ok(_) => {
+                    // Truthy/falsy check: only keep if explicitly true
+                    // For now, only accept boolean results
+                }
+                Err(e) => {
+                    return Err(ctx.error(format!("Filter condition error: {}", e)).await);
+                }
+            }
+        }
 
         let mut outputs = HashMap::new();
         outputs.insert("output".to_string(), NodeValue::Array(filtered));

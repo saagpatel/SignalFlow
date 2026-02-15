@@ -38,14 +38,14 @@ Built with Tauri 2, React 19, and Rust. Everything runs on your machine. No clou
 
 ## Node Library
 
-**16 node types** across 6 categories:
+**18 node types** across 6 categories:
 
 | Category | Nodes |
 |----------|-------|
 | Input | Text Input, Number Input, File Read, HTTP Request |
 | Transform | JSON Parse, Text Template, Regex, Filter, Map, Merge, Split |
 | Output | File Write, Debug |
-| Control | Conditional (if/else branching), Code (JavaScript) |
+| Control | Conditional (if/else branching), Code (JavaScript), Try/Catch, For Each |
 | AI | LLM Prompt, LLM Chat |
 
 Every node has typed ports (String, Number, Boolean, Array, Object, File, Any) with color-coded handles and connection validation. Nodes display inline config previews and output data directly on the canvas.
@@ -78,6 +78,19 @@ Every node has typed ports (String, Number, Boolean, Array, Object, File, Any) w
 - Success, error, warning, and info toasts for save, execution, validation, and flow management
 - Auto-dismiss after 4 seconds, max 5 visible
 
+### Advanced Features
+- **JavaScript Expression Evaluation** — Filter, Map, and Conditional nodes support custom JavaScript expressions
+  - Access `item` and `index` in Map/Filter nodes
+  - Access `input` in Conditional and Code nodes
+  - Full JavaScript expression support with syntax validation
+- **Settings Panel** — Configure Ollama endpoint, theme (light/dark/auto), and auto-save interval
+  - Test Ollama connection with live status indicator
+  - System theme detection for auto mode
+- **Error Context** — All error messages include node ID for precise debugging
+- **Try/Catch Node** — Handle errors gracefully without failing the entire flow
+- **For Each Node** — Iterate over arrays (basic implementation)
+- **CI/CD Pipeline** — Automated testing on every push and PR
+
 ## Getting Started
 
 ### Prerequisites
@@ -106,9 +119,17 @@ The `.dmg` (macOS) or installer lands in `src-tauri/target/release/bundle/`.
 ### Run Tests
 
 ```bash
-pnpm test                      # Frontend (Vitest, 21 tests)
-cd src-tauri && cargo test     # Backend (12 tests)
+pnpm test                      # Frontend (Vitest, 17 tests)
+cd src-tauri && cargo test     # Backend (61 tests: 29 unit + 32 integration)
 ```
+
+**Test Coverage:**
+- HTTP integration tests (httpbin.org validation)
+- File I/O tests (read/write, path traversal prevention)
+- Database tests (CRUD, concurrency, WAL mode)
+- Ollama integration tests (requires local Ollama, use `cargo test -- --ignored`)
+- Expression evaluation tests
+- Node executor tests
 
 ## Keyboard Shortcuts
 

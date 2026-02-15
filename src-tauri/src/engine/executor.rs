@@ -44,10 +44,9 @@ impl Engine {
         let start = Instant::now();
         let flow_graph = FlowGraph::from_document(doc)?;
 
-        let ctx = ExecutionContext {
-            node_outputs: Arc::new(RwLock::new(HashMap::new())),
-            cancelled: self.cancel_flag.clone(),
-        };
+        let mut ctx = ExecutionContext::new();
+        // Replace cancel flag with the one from the engine
+        ctx.cancelled = self.cancel_flag.clone();
 
         let node_map: HashMap<String, &FlowNode> =
             doc.nodes.iter().map(|n| (n.id.clone(), n)).collect();
@@ -87,9 +86,15 @@ impl Engine {
                     node_id: node_id.clone(),
                 });
 
+                // Set current node ID for error context
+                ctx.set_current_node_id(Some(node_id.clone())).await;
+
                 let node_start = Instant::now();
                 let result = executor.execute(inputs, node.data.clone(), &ctx).await;
                 let duration_ms = node_start.elapsed().as_millis() as u64;
+
+                // Clear current node ID after execution
+                ctx.set_current_node_id(None).await;
 
                 match result {
                     Ok(outputs) => {

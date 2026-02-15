@@ -321,6 +321,29 @@ export const NODE_DEFINITIONS: NodeDefinitionMeta[] = [
       { key: "code", label: "Code", required: true, widget: "textarea", rows: 6, monospace: true, placeholder: "return input;" },
     ],
   },
+  {
+    type: "tryCatch",
+    label: "Try/Catch",
+    category: "control",
+    description: "Handle errors from upstream nodes gracefully",
+    inputs: [{ id: "input", label: "Input", type: "any", required: true }],
+    outputs: [
+      { id: "success", label: "Success", type: "any", required: false },
+      { id: "error", label: "Error", type: "string", required: false },
+    ],
+    defaultConfig: {},
+    configSchema: [],
+  },
+  {
+    type: "forEach",
+    label: "For Each",
+    category: "control",
+    description: "Iterate over array items and execute for each",
+    inputs: [{ id: "array", label: "Array", type: "array", required: true }],
+    outputs: [{ id: "results", label: "Results", type: "array", required: false }],
+    defaultConfig: {},
+    configSchema: [],
+  },
 ];
 
 export function getNodeDefinition(type: string): NodeDefinitionMeta | undefined {

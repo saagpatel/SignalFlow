@@ -9,6 +9,7 @@ import {
   Redo2,
   Sun,
   Moon,
+  Settings,
 } from "lucide-react";
 import { useUiStore } from "../../stores/uiStore";
 import { useFlowStore } from "../../stores/flowStore";
@@ -16,7 +17,11 @@ import { useProjectStore } from "../../stores/projectStore";
 import { useExecution } from "../../hooks/useExecution";
 import { useSaveFlow } from "../../hooks/useSaveFlow";
 
-export function TopToolbar() {
+interface TopToolbarProps {
+  onSettingsClick?: () => void;
+}
+
+export function TopToolbar({ onSettingsClick }: TopToolbarProps) {
   const togglePalette = useUiStore((s) => s.togglePalette);
   const toggleInspector = useUiStore((s) => s.toggleInspector);
   const toggleExecutionPanel = useUiStore((s) => s.toggleExecutionPanel);
@@ -132,6 +137,16 @@ export function TopToolbar() {
           >
             {theme === "dark" ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
           </button>
+          {onSettingsClick && (
+            <button
+              onClick={onSettingsClick}
+              className="rounded p-1.5 text-text-secondary hover:bg-panel-border hover:text-text-primary"
+              aria-label="Settings"
+              title="Settings"
+            >
+              <Settings size={14} aria-hidden="true" />
+            </button>
+          )}
         </div>
       </div>
     </div>

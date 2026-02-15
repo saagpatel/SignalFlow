@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use crate::engine::context::ExecutionContext;
 use crate::error::AppError;
 use crate::nodes::NodeExecutor;
+use crate::sandbox::evaluate_expression_with_scope;
 use crate::types::NodeValue;
 
 pub struct ConditionalExecutor;
@@ -17,18 +18,33 @@ impl NodeExecutor for ConditionalExecutor {
     async fn execute(
         &self,
         inputs: HashMap<String, NodeValue>,
-        _config: serde_json::Value,
-        _ctx: &ExecutionContext,
+        config: serde_json::Value,
+        ctx: &ExecutionContext,
     ) -> Result<HashMap<String, NodeValue>, AppError> {
         let input = inputs.get("input").cloned().unwrap_or(NodeValue::Null);
 
-        let condition = inputs
-            .get("condition")
-            .and_then(|v| v.as_bool())
-            .unwrap_or_else(|| {
-                // Default: truthy check on input
-                input.as_bool().unwrap_or(false)
-            });
+        // Check for condition input first, then expression config, then default truthy check
+        let condition = if let Some(NodeValue::Boolean(b)) = inputs.get("condition") {
+            *b
+        } else if let Some(expression) = config.get("expression").and_then(|v| v.as_str()) {
+            // Evaluate expression
+            let mut scope = HashMap::new();
+            scope.insert("input".to_string(), input.clone());
+
+            match evaluate_expression_with_scope(expression, scope) {
+                Ok(NodeValue::Boolean(b)) => b,
+                Ok(other) => {
+                    // Try to coerce to boolean
+                    other.as_bool().unwrap_or(false)
+                }
+                Err(e) => {
+                    return Err(ctx.error(format!("Conditional expression error: {}", e)).await);
+                }
+            }
+        } else {
+            // Default: truthy check on input
+            input.as_bool().unwrap_or(false)
+        };
 
         let mut outputs = HashMap::new();
         if condition {
