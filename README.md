@@ -105,13 +105,51 @@ Every node has typed ports (String, Number, Boolean, Array, Object, File, Any) w
 
 ```bash
 pnpm install
-cargo tauri dev
+pnpm tauri dev
+```
+
+### Run in Lean Dev Mode (Lower Disk Usage)
+
+```bash
+pnpm dev:lean
+```
+
+What lean mode does:
+- Starts the app with the same `pnpm tauri dev` workflow.
+- Redirects heavy build caches to a temporary directory:
+  - Vite cache (`VITE_CACHE_DIR`)
+  - Rust target directory (`CARGO_TARGET_DIR`)
+- Automatically deletes that temporary cache directory when the dev process exits.
+
+Tradeoff:
+- Uses less persistent disk in the repo.
+- Cold starts are slower because Rust/Vite artifacts are rebuilt each session.
+- Dependency install cache (`node_modules`) is preserved for reasonable speed.
+
+### Cleanup Commands
+
+Targeted cleanup (heavy build artifacts only):
+
+```bash
+pnpm clean:heavy
+```
+
+Removes:
+- `dist`
+- `dist-ssr`
+- `node_modules/.vite`
+- `src-tauri/target`
+
+Full local cleanup (all reproducible local caches in this repo):
+
+```bash
+pnpm clean:all
 ```
 
 ### Build for Production
 
 ```bash
-cargo tauri build
+pnpm tauri build
 ```
 
 The `.dmg` (macOS) or installer lands in `src-tauri/target/release/bundle/`.

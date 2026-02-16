@@ -8,6 +8,8 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
   clearScreen: false,
+  // Lean mode can move Vite cache out of repo via VITE_CACHE_DIR.
+  cacheDir: process.env.VITE_CACHE_DIR || "node_modules/.vite",
   server: {
     port: 1420,
     strictPort: true,
