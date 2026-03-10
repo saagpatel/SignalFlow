@@ -1,5 +1,5 @@
-use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::algo::toposort;
+use petgraph::graph::{DiGraph, NodeIndex};
 use std::collections::HashMap;
 
 use crate::error::AppError;
@@ -37,10 +37,7 @@ impl FlowGraph {
         // Topological sort
         let sorted = toposort(&graph, None).map_err(|_| AppError::CycleDetected)?;
 
-        let execution_order: Vec<String> = sorted
-            .iter()
-            .map(|idx| graph[*idx].clone())
-            .collect();
+        let execution_order: Vec<String> = sorted.iter().map(|idx| graph[*idx].clone()).collect();
 
         // Build execution layers (nodes at same depth can run in parallel)
         let layers = build_layers(&graph, &sorted, &node_indices);
@@ -127,7 +124,13 @@ mod tests {
     #[test]
     fn test_toposort_linear() {
         let doc = make_doc(
-            vec![("a", "textInput"), ("b", "textTemplate"), ("c", "debug"), ("d", "filter"), ("e", "debug")],
+            vec![
+                ("a", "textInput"),
+                ("b", "textTemplate"),
+                ("c", "debug"),
+                ("d", "filter"),
+                ("e", "debug"),
+            ],
             vec![("a", "b"), ("b", "c"), ("c", "d"), ("d", "e")],
         );
         let graph = FlowGraph::from_document(&doc).unwrap();

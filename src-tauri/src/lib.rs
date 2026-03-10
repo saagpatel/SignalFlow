@@ -8,8 +8,8 @@ pub mod sandbox;
 mod state;
 pub mod types;
 
-use tauri::Manager;
 use state::AppState;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

@@ -1,6 +1,6 @@
+use super::Database;
 use crate::error::AppError;
 use crate::types::FlowDocument;
-use super::Database;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,13 +13,15 @@ pub struct FlowSummary {
 impl Database {
     pub fn save_flow(&self, flow: &FlowDocument) -> Result<String, AppError> {
         let conn = self.conn()?;
-        let id = flow
-            .id
-            .clone()
-            .unwrap_or_else(|| format!("flow_{}", std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis()));
+        let id = flow.id.clone().unwrap_or_else(|| {
+            format!(
+                "flow_{}",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis()
+            )
+        });
 
         let data = serde_json::to_string(flow)?;
 

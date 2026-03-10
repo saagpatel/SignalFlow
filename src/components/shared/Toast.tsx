@@ -1,37 +1,46 @@
+import { useCallback, useState, type ReactNode } from "react";
 import {
-  createContext,
-  useCallback,
-  useState,
-  type ReactNode,
-} from "react";
-import { X, CheckCircle2, AlertCircle, AlertTriangle, Info } from "lucide-react";
+  X,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+} from "lucide-react";
+import {
+  ToastContext,
+  type Toast,
+  type ToastInput,
+  type ToastVariant,
+} from "./toast-context";
 
-export type ToastVariant = "success" | "error" | "warning" | "info";
-
-export interface Toast {
-  id: number;
-  title: string;
-  description?: string;
-  variant: ToastVariant;
-}
-
-export interface ToastInput {
-  title: string;
-  description?: string;
-  variant?: ToastVariant;
-}
-
-interface ToastContextValue {
-  toast: (input: ToastInput) => void;
-}
-
-export const ToastContext = createContext<ToastContextValue | null>(null);
-
-const VARIANT_STYLES: Record<ToastVariant, { bg: string; border: string; icon: typeof Info; iconColor: string }> = {
-  success: { bg: "bg-green-500/10", border: "border-green-500/30", icon: CheckCircle2, iconColor: "text-green-400" },
-  error: { bg: "bg-red-500/10", border: "border-red-500/30", icon: AlertCircle, iconColor: "text-red-400" },
-  warning: { bg: "bg-amber-500/10", border: "border-amber-500/30", icon: AlertTriangle, iconColor: "text-amber-400" },
-  info: { bg: "bg-blue-500/10", border: "border-blue-500/30", icon: Info, iconColor: "text-blue-400" },
+const VARIANT_STYLES: Record<
+  ToastVariant,
+  { bg: string; border: string; icon: typeof Info; iconColor: string }
+> = {
+  success: {
+    bg: "bg-green-500/10",
+    border: "border-green-500/30",
+    icon: CheckCircle2,
+    iconColor: "text-green-400",
+  },
+  error: {
+    bg: "bg-red-500/10",
+    border: "border-red-500/30",
+    icon: AlertCircle,
+    iconColor: "text-red-400",
+  },
+  warning: {
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/30",
+    icon: AlertTriangle,
+    iconColor: "text-amber-400",
+  },
+  info: {
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/30",
+    icon: Info,
+    iconColor: "text-blue-400",
+  },
 };
 
 const MAX_TOASTS = 5;
@@ -39,7 +48,13 @@ const AUTO_DISMISS_MS = 4000;
 
 let toastCounter = 0;
 
-function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number) => void }) {
+function ToastItem({
+  toast,
+  onDismiss,
+}: {
+  toast: Toast;
+  onDismiss: (id: number) => void;
+}) {
   const style = VARIANT_STYLES[toast.variant];
   const Icon = style.icon;
 
@@ -48,11 +63,17 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
       className={`flex items-start gap-2.5 rounded-lg border ${style.border} ${style.bg} px-3 py-2.5 shadow-lg backdrop-blur-sm animate-in slide-in-from-right`}
       role="alert"
     >
-      <Icon size={16} className={`mt-0.5 shrink-0 ${style.iconColor}`} aria-hidden="true" />
+      <Icon
+        size={16}
+        className={`mt-0.5 shrink-0 ${style.iconColor}`}
+        aria-hidden="true"
+      />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-text-primary">{toast.title}</p>
         {toast.description && (
-          <p className="mt-0.5 text-xs text-text-secondary">{toast.description}</p>
+          <p className="mt-0.5 text-xs text-text-secondary">
+            {toast.description}
+          </p>
         )}
       </div>
       <button
@@ -93,7 +114,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         dismiss(id);
       }, AUTO_DISMISS_MS);
     },
-    [dismiss]
+    [dismiss],
   );
 
   return (

@@ -38,7 +38,9 @@ impl NodeExecutor for ConditionalExecutor {
                     other.as_bool().unwrap_or(false)
                 }
                 Err(e) => {
-                    return Err(ctx.error(format!("Conditional expression error: {}", e)).await);
+                    return Err(ctx
+                        .error(format!("Conditional expression error: {}", e))
+                        .await);
                 }
             }
         } else {

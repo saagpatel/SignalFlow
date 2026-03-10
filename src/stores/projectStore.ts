@@ -8,6 +8,7 @@ export interface ProjectState {
   lastSavedAt: string | null;
   recentFlows: FlowSummary[];
   loading: boolean;
+  activeScreen: "welcome" | "editor";
 
   setCurrentFlow: (id: string | null, name: string) => void;
   markDirty: () => void;
@@ -15,6 +16,8 @@ export interface ProjectState {
   setRecentFlows: (flows: FlowSummary[]) => void;
   setFlowName: (name: string) => void;
   setLoading: (loading: boolean) => void;
+  showWelcome: () => void;
+  showEditor: () => void;
 }
 
 export const useProjectStore = create<ProjectState>()((set) => ({
@@ -24,6 +27,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
   lastSavedAt: null,
   recentFlows: [],
   loading: true,
+  activeScreen: "welcome",
 
   setCurrentFlow: (id, name) =>
     set({ currentFlowId: id, currentFlowName: name, isDirty: false }),
@@ -42,4 +46,8 @@ export const useProjectStore = create<ProjectState>()((set) => ({
   setFlowName: (name) => set({ currentFlowName: name, isDirty: true }),
 
   setLoading: (loading) => set({ loading }),
+
+  showWelcome: () => set({ activeScreen: "welcome" }),
+
+  showEditor: () => set({ activeScreen: "editor" }),
 }));

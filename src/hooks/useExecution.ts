@@ -14,6 +14,7 @@ import { useToast } from "./useToast";
 export function useExecution() {
   const nodes = useFlowStore((s) => s.nodes);
   const edges = useFlowStore((s) => s.edges);
+  const viewport = useFlowStore((s) => s.viewport);
   const executionStatus = useExecutionStore((s) => s.status);
   const startExecution = useExecutionStore((s) => s.startExecution);
   const setNodeStatus = useExecutionStore((s) => s.setNodeStatus);
@@ -24,7 +25,7 @@ export function useExecution() {
   const cancelExecution = useExecutionStore((s) => s.cancelExecution);
   const addLog = useExecutionStore((s) => s.addLog);
   const setValidationWarnings = useExecutionStore(
-    (s) => s.setValidationWarnings
+    (s) => s.setValidationWarnings,
   );
   const flowName = useProjectStore((s) => s.currentFlowName);
   const flowId = useProjectStore((s) => s.currentFlowId);
@@ -73,7 +74,7 @@ export function useExecution() {
         sourceHandle: e.sourceHandle ?? null,
         targetHandle: e.targetHandle ?? null,
       })),
-      viewport: { x: 0, y: 0, zoom: 1 },
+      viewport,
     };
 
     const handleEvent = (event: ExecutionEvent) => {
@@ -147,20 +148,21 @@ export function useExecution() {
       toast({ title: "Execution failed", description: msg, variant: "error" });
     }
   }, [
-    nodes,
+    addLog,
+    completeExecution,
     edges,
     executionStatus,
+    failExecution,
     flowId,
     flowName,
-    startExecution,
-    setNodeStatus,
-    setNodeOutput,
+    nodes,
     setNodeError,
-    completeExecution,
-    failExecution,
-    addLog,
+    setNodeOutput,
+    setNodeStatus,
     setValidationWarnings,
+    startExecution,
     toast,
+    viewport,
   ]);
 
   const stop = useCallback(async () => {

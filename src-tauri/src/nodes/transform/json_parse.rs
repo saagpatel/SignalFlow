@@ -35,9 +35,7 @@ impl NodeExecutor for JsonParseExecutor {
             })?;
 
         let output = match parsed {
-            serde_json::Value::Object(map) => {
-                NodeValue::Object(map.into_iter().collect())
-            }
+            serde_json::Value::Object(map) => NodeValue::Object(map.into_iter().collect()),
             serde_json::Value::Array(arr) => {
                 NodeValue::Array(arr.into_iter().map(json_to_node_value).collect())
             }
@@ -59,8 +57,6 @@ fn json_to_node_value(v: serde_json::Value) -> NodeValue {
         serde_json::Value::Array(arr) => {
             NodeValue::Array(arr.into_iter().map(json_to_node_value).collect())
         }
-        serde_json::Value::Object(map) => {
-            NodeValue::Object(map.into_iter().map(|(k, v)| (k, v)).collect())
-        }
+        serde_json::Value::Object(map) => NodeValue::Object(map.into_iter().collect()),
     }
 }

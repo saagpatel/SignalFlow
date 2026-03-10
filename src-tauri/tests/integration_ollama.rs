@@ -1,7 +1,7 @@
-use signalflow_lib::ollama::OllamaClient;
 use signalflow_lib::engine::context::ExecutionContext;
-use signalflow_lib::nodes::ai::{LlmPromptExecutor, LlmChatExecutor};
+use signalflow_lib::nodes::ai::{LlmChatExecutor, LlmPromptExecutor};
 use signalflow_lib::nodes::NodeExecutor;
+use signalflow_lib::ollama::OllamaClient;
 use signalflow_lib::types::NodeValue;
 use std::collections::HashMap;
 
@@ -27,7 +27,10 @@ async fn test_ollama_health_check_unavailable() {
     let client = OllamaClient::new("http://localhost:9999").unwrap();
     let status = client.check_health().await;
 
-    assert!(!status.available, "Ollama should not be available on port 9999");
+    assert!(
+        !status.available,
+        "Ollama should not be available on port 9999"
+    );
     assert!(status.error.is_some(), "Should have error message");
 }
 
@@ -52,12 +55,9 @@ async fn test_ollama_list_models() {
 #[ignore] // Only runs if Ollama is available with llama3.2
 async fn test_ollama_generate() {
     let client = OllamaClient::try_default().unwrap();
-    let result = client.generate(
-        "llama3.2",
-        "Say 'hello' and nothing else",
-        None,
-        0.7,
-    ).await;
+    let result = client
+        .generate("llama3.2", "Say 'hello' and nothing else", None, 0.7)
+        .await;
 
     assert!(result.is_ok(), "Generation should succeed");
 
@@ -110,10 +110,7 @@ async fn test_llm_chat_node() {
         "message".to_string(),
         NodeValue::String("Hello!".to_string()),
     );
-    inputs.insert(
-        "history".to_string(),
-        NodeValue::Array(vec![]),
-    );
+    inputs.insert("history".to_string(), NodeValue::Array(vec![]));
 
     let config = serde_json::json!({
         "model": "llama3.2",
@@ -132,7 +129,10 @@ async fn test_llm_chat_node() {
 
         if let Some(NodeValue::Array(history)) = outputs.get("history") {
             // History should contain the message and response
-            assert!(history.len() >= 2, "History should have at least 2 messages");
+            assert!(
+                history.len() >= 2,
+                "History should have at least 2 messages"
+            );
         }
     }
 }
@@ -142,30 +142,35 @@ async fn test_ollama_error_handling_invalid_model() {
     let client = OllamaClient::try_default().unwrap();
 
     // Try to use a model that definitely doesn't exist
-    let result = client.generate(
-        "nonexistent-model-12345",
-        "test prompt",
-        None,
-        0.7,
-    ).await;
+    let result = client
+        .generate("nonexistent-model-12345", "test prompt", None, 0.7)
+        .await;
 
     // Should return an error (if Ollama is running) or connection error (if not)
     // Either way, it should not panic
-    assert!(result.is_err() || result.is_ok(), "Should handle gracefully");
+    assert!(
+        result.is_err() || result.is_ok(),
+        "Should handle gracefully"
+    );
 }
 
 #[tokio::test]
 #[ignore] // Only runs if Ollama is available
 async fn test_ollama_generate_with_system_prompt() {
     let client = OllamaClient::try_default().unwrap();
-    let result = client.generate(
-        "llama3.2",
-        "Who are you?",
-        Some("You are a pirate. Always respond like a pirate."),
-        0.7,
-    ).await;
+    let result = client
+        .generate(
+            "llama3.2",
+            "Who are you?",
+            Some("You are a pirate. Always respond like a pirate."),
+            0.7,
+        )
+        .await;
 
-    assert!(result.is_ok(), "Generation with system prompt should succeed");
+    assert!(
+        result.is_ok(),
+        "Generation with system prompt should succeed"
+    );
 
     let response = result.unwrap();
     // Response should reflect the pirate system prompt
@@ -179,24 +184,24 @@ async fn test_ollama_temperature_variation() {
     let client = OllamaClient::try_default().unwrap();
 
     // Low temperature (more deterministic)
-    let result_low = client.generate(
-        "llama3.2",
-        "What is the capital of France?",
-        None,
-        0.1,
-    ).await;
+    let result_low = client
+        .generate("llama3.2", "What is the capital of France?", None, 0.1)
+        .await;
 
-    assert!(result_low.is_ok(), "Low temperature generation should succeed");
+    assert!(
+        result_low.is_ok(),
+        "Low temperature generation should succeed"
+    );
 
     // High temperature (more creative)
-    let result_high = client.generate(
-        "llama3.2",
-        "What is the capital of France?",
-        None,
-        1.5,
-    ).await;
+    let result_high = client
+        .generate("llama3.2", "What is the capital of France?", None, 1.5)
+        .await;
 
-    assert!(result_high.is_ok(), "High temperature generation should succeed");
+    assert!(
+        result_high.is_ok(),
+        "High temperature generation should succeed"
+    );
 
     // Both should mention Paris
     let response_low = result_low.unwrap();

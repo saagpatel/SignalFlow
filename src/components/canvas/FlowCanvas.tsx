@@ -26,8 +26,16 @@ const defaultEdgeOptions = { type: "animated" as const };
 const deleteKeyCode = ["Backspace", "Delete"];
 
 export function FlowCanvas() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect } =
-    useFlowStore();
+  const {
+    nodes,
+    edges,
+    viewport,
+    hasPersistedViewport,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    setViewport,
+  } = useFlowStore();
   const selectNode = useUiStore((s) => s.selectNode);
   const { onDragOver, onDrop } = useDragAndDrop();
 
@@ -35,7 +43,7 @@ export function FlowCanvas() {
     (connection: Connection | Edge) => {
       return isValidConnection(connection, nodes, edges).valid;
     },
-    [nodes, edges]
+    [nodes, edges],
   );
 
   const showEmptyState = nodes.length === 0;
@@ -68,9 +76,15 @@ export function FlowCanvas() {
         onPaneClick={() => selectNode(null)}
         onDragOver={onDragOver}
         onDrop={onDrop}
+        onMoveEnd={(event, nextViewport) => {
+          if (event) {
+            setViewport(nextViewport);
+          }
+        }}
         isValidConnection={handleIsValidConnection}
         selectionMode={SelectionMode.Partial}
-        fitView
+        fitView={nodes.length > 0 && !hasPersistedViewport}
+        defaultViewport={viewport}
         snapToGrid
         snapGrid={SNAP_GRID}
         proOptions={proOptions}

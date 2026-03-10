@@ -5,6 +5,7 @@ use crate::engine::context::ExecutionContext;
 use crate::error::AppError;
 use crate::nodes::NodeExecutor;
 use crate::ollama::OllamaClient;
+use crate::state::DEFAULT_OLLAMA_ENDPOINT;
 use crate::types::NodeValue;
 
 pub struct LlmPromptExecutor;
@@ -44,7 +45,12 @@ impl NodeExecutor for LlmPromptExecutor {
             .and_then(|v| v.as_str())
             .filter(|s| !s.is_empty());
 
-        let client = OllamaClient::try_default()?;
+        let endpoint = config
+            .get("endpoint")
+            .and_then(|value| value.as_str())
+            .unwrap_or(DEFAULT_OLLAMA_ENDPOINT);
+
+        let client = OllamaClient::new(endpoint)?;
         let response = client
             .generate(model, &prompt, system_prompt, temperature)
             .await?;

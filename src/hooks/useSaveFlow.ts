@@ -7,6 +7,7 @@ import { useToast } from "./useToast";
 export function useSaveFlow() {
   const nodes = useFlowStore((s) => s.nodes);
   const edges = useFlowStore((s) => s.edges);
+  const viewport = useFlowStore((s) => s.viewport);
   const flowId = useProjectStore((s) => s.currentFlowId);
   const flowName = useProjectStore((s) => s.currentFlowName);
   const markSaved = useProjectStore((s) => s.markSaved);
@@ -33,7 +34,7 @@ export function useSaveFlow() {
         sourceHandle: e.sourceHandle ?? null,
         targetHandle: e.targetHandle ?? null,
       })),
-      viewport: { x: 0, y: 0, zoom: 1 },
+      viewport,
     };
 
     try {
@@ -47,7 +48,7 @@ export function useSaveFlow() {
     } finally {
       isSaving.current = false;
     }
-  }, [nodes, edges, flowId, flowName, markSaved, toast]);
+  }, [edges, flowId, flowName, markSaved, nodes, toast, viewport]);
 
   return { save };
 }

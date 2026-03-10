@@ -23,7 +23,12 @@ impl NodeExecutor for FileWriteExecutor {
         let path = inputs
             .get("path")
             .and_then(|v| v.as_string())
-            .or_else(|| config.get("path").and_then(|v| v.as_str()).map(String::from))
+            .or_else(|| {
+                config
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+            })
             .unwrap_or_default();
 
         if path.is_empty() {
@@ -63,6 +68,9 @@ impl NodeExecutor for FileWriteExecutor {
                     message: format!("Failed to open file '{}': {}", path, e),
                 })?;
             file.write_all(content.as_bytes())
+                .await
+                .map_err(|e| AppError::Io(e.to_string()))?;
+            file.flush()
                 .await
                 .map_err(|e| AppError::Io(e.to_string()))?;
         } else {

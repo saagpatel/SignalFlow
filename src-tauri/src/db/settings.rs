@@ -1,14 +1,12 @@
-use crate::error::AppError;
 use super::Database;
+use crate::error::AppError;
 
 impl Database {
     pub fn get_setting(&self, key: &str) -> Result<Option<String>, AppError> {
         let conn = self.conn()?;
-        let result = conn.query_row(
-            "SELECT value FROM settings WHERE key = ?1",
-            [key],
-            |row| row.get(0),
-        );
+        let result = conn.query_row("SELECT value FROM settings WHERE key = ?1", [key], |row| {
+            row.get(0)
+        });
 
         match result {
             Ok(value) => Ok(Some(value)),

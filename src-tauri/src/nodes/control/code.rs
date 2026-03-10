@@ -74,10 +74,7 @@ mod tests {
     async fn test_code_string_manipulation() {
         let executor = CodeExecutor;
         let mut inputs = HashMap::new();
-        inputs.insert(
-            "input".to_string(),
-            NodeValue::String("hello".to_string()),
-        );
+        inputs.insert("input".to_string(), NodeValue::String("hello".to_string()));
 
         let config = serde_json::json!({
             "code": "return input.toUpperCase()"

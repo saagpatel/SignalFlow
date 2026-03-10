@@ -43,16 +43,19 @@ pub struct Viewport {
     pub zoom: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(untagged)]
 pub enum NodeValue {
+    #[default]
     Null,
     Boolean(bool),
     Number(f64),
     String(String),
     Array(Vec<NodeValue>),
     Object(HashMap<String, serde_json::Value>),
-    File { path: String },
+    File {
+        path: String,
+    },
 }
 
 impl NodeValue {
@@ -111,34 +114,33 @@ impl NodeValue {
             NodeValue::Array(arr) => {
                 serde_json::Value::Array(arr.iter().map(|v| v.to_json_value()).collect())
             }
-            NodeValue::Object(obj) => serde_json::Value::Object(
-                obj.iter()
-                    .map(|(k, v)| (k.clone(), v.clone()))
-                    .collect(),
-            ),
+            NodeValue::Object(obj) => {
+                serde_json::Value::Object(obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+            }
             NodeValue::File { path } => serde_json::json!({ "path": path }),
         }
-    }
-}
-
-impl Default for NodeValue {
-    fn default() -> Self {
-        NodeValue::Null
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum ExecutionEvent {
-    NodeStarted { node_id: String },
+    NodeStarted {
+        node_id: String,
+    },
     NodeCompleted {
         node_id: String,
         output_preview: String,
         output_data: Option<serde_json::Value>,
         duration_ms: u64,
     },
-    NodeError { node_id: String, error: String },
-    ExecutionComplete { total_duration_ms: u64 },
+    NodeError {
+        node_id: String,
+        error: String,
+    },
+    ExecutionComplete {
+        total_duration_ms: u64,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

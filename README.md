@@ -6,6 +6,18 @@ SignalFlow is a visual dataflow programming app for your desktop. Think Unreal B
 
 Built with Tauri 2, React 19, and Rust. Everything runs on your machine. No cloud. No accounts. No telemetry.
 
+Current release posture:
+
+- macOS-first `v1.0.0` target
+- Manual GitHub Releases for first production launch
+- Ollama is a core supported feature, configured through the in-app settings panel
+- Canonical local verification runs through `pnpm verify`
+- Release metadata is synced to `1.0.0` with bundle identifier `com.signalflow.desktop`
+
+Launch Contract: see `docs/launch-contract.md`
+
+Release Readiness: see `docs/release-readiness.md`
+
 ---
 
 ## What Can You Do With It?
@@ -23,62 +35,68 @@ Built with Tauri 2, React 19, and Rust. Everything runs on your machine. No clou
 
 ## The Stack
 
-| Layer | Tech |
-|-------|------|
-| Desktop Shell | **Tauri 2** |
-| Frontend | **React 19** + TypeScript strict + Vite |
-| Node Graph | **@xyflow/react** (ReactFlow 12) |
-| Styling | **Tailwind CSS 4** |
-| State | **Zustand 5** + zundo (undo/redo) |
-| Backend | **Rust** + tokio async runtime |
-| Graph Engine | **petgraph** (toposort, cycle detection) |
-| Database | **rusqlite** (WAL mode, bundled SQLite) |
-| LLM | **Ollama** (local models, streaming) |
-| Command Palette | **cmdk** |
+| Layer           | Tech                                     |
+| --------------- | ---------------------------------------- |
+| Desktop Shell   | **Tauri 2**                              |
+| Frontend        | **React 19** + TypeScript strict + Vite  |
+| Node Graph      | **@xyflow/react** (ReactFlow 12)         |
+| Styling         | **Tailwind CSS 4**                       |
+| State           | **Zustand 5** + zundo (undo/redo)        |
+| Backend         | **Rust** + tokio async runtime           |
+| Graph Engine    | **petgraph** (toposort, cycle detection) |
+| Database        | **rusqlite** (WAL mode, bundled SQLite)  |
+| LLM             | **Ollama** (local models, streaming)     |
+| Command Palette | **cmdk**                                 |
 
 ## Node Library
 
-**18 node types** across 6 categories:
+**20 node types** across 6 categories:
 
-| Category | Nodes |
-|----------|-------|
-| Input | Text Input, Number Input, File Read, HTTP Request |
-| Transform | JSON Parse, Text Template, Regex, Filter, Map, Merge, Split |
-| Output | File Write, Debug |
-| Control | Conditional (if/else branching), Code (JavaScript), Try/Catch, For Each |
-| AI | LLM Prompt, LLM Chat |
+| Category  | Nodes                                                                   |
+| --------- | ----------------------------------------------------------------------- |
+| Input     | Text Input, Number Input, File Read, HTTP Request                       |
+| Transform | JSON Parse, Text Template, Regex, Filter, Map, Merge, Split             |
+| Output    | File Write, Debug                                                       |
+| Control   | Conditional (if/else branching), Code (JavaScript), Try/Catch, For Each |
+| AI        | LLM Prompt, LLM Chat                                                    |
 
 Every node has typed ports (String, Number, Boolean, Array, Object, File, Any) with color-coded handles and connection validation. Nodes display inline config previews and output data directly on the canvas.
 
 ## Key Features
 
 ### Flow Management
+
 - **Welcome screen** with recent flows list on startup
 - **Auto-load** your last flow when you relaunch
 - **Command palette** (Cmd+K) with New Flow, Open Flow, Save As, Delete Flow
 - **Unsaved changes detection** with confirmation dialogs
 
 ### Smart Node Configuration
+
 - **Config schema system** — each node type declares its fields, and the inspector renders specialized widgets automatically
 - **File path picker** — native OS file dialogs for File Read/Write nodes
 - **Model selector** — dropdown populated from your local Ollama models with availability detection
 - **Sliders, dropdowns, key-value editors, checkboxes** — the right widget for each field
 
 ### Data Visibility
+
 - **Inline output previews** on every node after execution (strings, arrays, objects, errors)
 - **Collapsible JSON tree** in the inspector with type badges and copy-to-clipboard
 - **50KB output cap** to keep the UI responsive on large payloads
 
 ### Pre-Run Validation
+
 - Catches disconnected required inputs, empty config values, and orphan nodes
 - **Clickable warnings** that select the problem node on the canvas
 - Warnings shown as toasts and in the execution panel before logs
 
 ### Toast Notifications
+
 - Success, error, warning, and info toasts for save, execution, validation, and flow management
 - Auto-dismiss after 4 seconds, max 5 visible
 
 ### Advanced Features
+
 - **JavaScript Expression Evaluation** — Filter, Map, and Conditional nodes support custom JavaScript expressions
   - Access `item` and `index` in Map/Filter nodes
   - Access `input` in Conditional and Code nodes
@@ -88,7 +106,7 @@ Every node has typed ports (String, Number, Boolean, Array, Object, File, Any) w
   - System theme detection for auto mode
 - **Error Context** — All error messages include node ID for precise debugging
 - **Try/Catch Node** — Handle errors gracefully without failing the entire flow
-- **For Each Node** — Iterate over arrays (basic implementation)
+- **For Each Node** — Iterate over arrays with expression-based item transforms
 - **CI/CD Pipeline** — Automated testing on every push and PR
 
 ## Getting Started
@@ -96,7 +114,7 @@ Every node has typed ports (String, Number, Boolean, Array, Object, File, Any) w
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 22+
-- [pnpm](https://pnpm.io/) 9+
+- [pnpm](https://pnpm.io/) 10+
 - [Rust](https://www.rust-lang.org/tools/install) stable
 - [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS
 - [Ollama](https://ollama.com/) (optional, for AI nodes)
@@ -115,6 +133,7 @@ pnpm dev:lean
 ```
 
 What lean mode does:
+
 - Starts the app with the same `pnpm tauri dev` workflow.
 - Redirects heavy build caches to a temporary directory:
   - Vite cache (`VITE_CACHE_DIR`)
@@ -122,6 +141,7 @@ What lean mode does:
 - Automatically deletes that temporary cache directory when the dev process exits.
 
 Tradeoff:
+
 - Uses less persistent disk in the repo.
 - Cold starts are slower because Rust/Vite artifacts are rebuilt each session.
 - Dependency install cache (`node_modules`) is preserved for reasonable speed.
@@ -135,6 +155,7 @@ pnpm clean:heavy
 ```
 
 Removes:
+
 - `dist`
 - `dist-ssr`
 - `node_modules/.vite`
@@ -150,6 +171,7 @@ pnpm clean:all
 
 ```bash
 pnpm tauri build
+pnpm release:checksum
 ```
 
 The `.dmg` (macOS) or installer lands in `src-tauri/target/release/bundle/`.
@@ -157,30 +179,53 @@ The `.dmg` (macOS) or installer lands in `src-tauri/target/release/bundle/`.
 ### Run Tests
 
 ```bash
-pnpm test                      # Frontend (Vitest, 17 tests)
-cd src-tauri && cargo test     # Backend (61 tests: 29 unit + 32 integration)
+pnpm lint                      # Frontend lint
+pnpm test                      # Frontend (Vitest)
+cd src-tauri && cargo test     # Backend (Rust)
 ```
 
 **Test Coverage:**
-- HTTP integration tests (httpbin.org validation)
+
+- HTTP integration tests (local mock server coverage)
 - File I/O tests (read/write, path traversal prevention)
 - Database tests (CRUD, concurrency, WAL mode)
 - Ollama integration tests (requires local Ollama, use `cargo test -- --ignored`)
 - Expression evaluation tests
 - Node executor tests
+- Launch verification can be run end to end with `pnpm verify`
+
+### Performance Baselines
+
+```bash
+pnpm perf:bundle
+pnpm perf:build
+pnpm perf:baseline
+```
+
+This refreshes the tracked bundle/build baselines used by the perf comparison workflows after an intentional change.
+
+### Codex Execution Helpers
+
+```bash
+.codex/actions/bootstrap.sh
+.codex/actions/verify.sh
+.codex/actions/release-rehearsal.sh
+```
+
+These scripts provide a consistent bootstrap, verify, and release-rehearsal path for future worktrees.
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Cmd+K` | Command palette |
-| `Cmd+Enter` | Run flow |
-| `Cmd+S` | Save |
-| `Cmd+Z` / `Cmd+Shift+Z` | Undo / Redo |
-| `Cmd+C` / `Cmd+V` | Copy / Paste nodes |
-| `Cmd+D` | Duplicate selected |
-| `Cmd+A` | Select all |
-| `Backspace` | Delete selected |
+| Shortcut                | Action             |
+| ----------------------- | ------------------ |
+| `Cmd+K`                 | Command palette    |
+| `Cmd+Enter`             | Run flow           |
+| `Cmd+S`                 | Save               |
+| `Cmd+Z` / `Cmd+Shift+Z` | Undo / Redo        |
+| `Cmd+C` / `Cmd+V`       | Copy / Paste nodes |
+| `Cmd+D`                 | Duplicate selected |
+| `Cmd+A`                 | Select all         |
+| `Backspace`             | Delete selected    |
 
 ## Project Structure
 

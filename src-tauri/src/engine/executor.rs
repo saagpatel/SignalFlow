@@ -16,6 +16,12 @@ pub struct Engine {
     cancel_flag: Arc<std::sync::atomic::AtomicBool>,
 }
 
+impl Default for Engine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Engine {
     pub fn new() -> Self {
         Self {
@@ -63,12 +69,13 @@ impl Engine {
                     .get(node_id)
                     .ok_or_else(|| AppError::Graph(format!("Node {} not found", node_id)))?;
 
-                let executor = self.registry.get(&node.node_type).ok_or_else(|| {
-                    AppError::NodeExecution {
-                        node_id: node_id.clone(),
-                        message: format!("Unknown node type: {}", node.node_type),
-                    }
-                })?;
+                let executor =
+                    self.registry
+                        .get(&node.node_type)
+                        .ok_or_else(|| AppError::NodeExecution {
+                            node_id: node_id.clone(),
+                            message: format!("Unknown node type: {}", node.node_type),
+                        })?;
 
                 // Gather inputs from upstream node outputs
                 let input_edges = flow_graph.get_input_edges(node_id);
@@ -79,6 +86,17 @@ impl Engine {
                     let source_handle = edge.source_handle.as_deref().unwrap_or("value");
                     let value = ctx.get_input(&edge.source, source_handle).await;
                     inputs.insert(handle.to_string(), value);
+
+                    if let Some(result) = node_results.get(&edge.source) {
+                        if !result.success {
+                            if let Some(error) = &result.error {
+                                inputs.insert(
+                                    "__upstreamError".to_string(),
+                                    NodeValue::String(error.clone()),
+                                );
+                            }
+                        }
+                    }
                 }
 
                 let _ = channel.send(ExecutionEvent::NodeStarted {
@@ -154,11 +172,12 @@ impl Engine {
                             },
                         );
 
-                        had_error = true;
+                        if !error_is_handled_by_try_catch(node_id, doc, &node_map) {
+                            had_error = true;
+                        }
                     }
                 }
             }
-
         }
 
         let total_duration_ms = start.elapsed().as_millis() as u64;
@@ -175,5 +194,69 @@ impl Engine {
                 None
             },
         })
+    }
+}
+
+fn error_is_handled_by_try_catch(
+    node_id: &str,
+    doc: &FlowDocument,
+    node_map: &HashMap<String, &FlowNode>,
+) -> bool {
+    let mut has_downstream = false;
+
+    for edge in doc.edges.iter().filter(|edge| edge.source == node_id) {
+        has_downstream = true;
+
+        let Some(target) = node_map.get(&edge.target) else {
+            return false;
+        };
+
+        if target.node_type != "tryCatch" {
+            return false;
+        }
+    }
+
+    has_downstream
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{FlowEdge, FlowNode, Position, Viewport};
+
+    #[test]
+    fn try_catch_only_downstream_marks_error_as_handled() {
+        let try_node = FlowNode {
+            id: "try".into(),
+            node_type: "tryCatch".into(),
+            position: Position::default(),
+            data: serde_json::json!({}),
+        };
+        let source_node = FlowNode {
+            id: "source".into(),
+            node_type: "fileRead".into(),
+            position: Position::default(),
+            data: serde_json::json!({}),
+        };
+        let doc = FlowDocument {
+            id: None,
+            name: "Handled".into(),
+            nodes: vec![source_node.clone(), try_node.clone()],
+            edges: vec![FlowEdge {
+                id: "edge-1".into(),
+                source: "source".into(),
+                target: "try".into(),
+                source_handle: None,
+                target_handle: None,
+            }],
+            viewport: Viewport::default(),
+        };
+        let node_map: HashMap<String, &FlowNode> = doc
+            .nodes
+            .iter()
+            .map(|node| (node.id.clone(), node))
+            .collect();
+
+        assert!(error_is_handled_by_try_catch("source", &doc, &node_map));
     }
 }

@@ -23,7 +23,12 @@ impl NodeExecutor for FileReadExecutor {
         let path = inputs
             .get("path")
             .and_then(|v| v.as_string())
-            .or_else(|| config.get("path").and_then(|v| v.as_str()).map(String::from))
+            .or_else(|| {
+                config
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+            })
             .unwrap_or_default();
 
         if path.is_empty() {
@@ -42,12 +47,13 @@ impl NodeExecutor for FileReadExecutor {
             });
         }
 
-        let content = tokio::fs::read_to_string(canonical).await.map_err(|e| {
-            AppError::NodeExecution {
-                node_id: String::new(),
-                message: format!("Failed to read file '{}': {}", path, e),
-            }
-        })?;
+        let content =
+            tokio::fs::read_to_string(canonical)
+                .await
+                .map_err(|e| AppError::NodeExecution {
+                    node_id: String::new(),
+                    message: format!("Failed to read file '{}': {}", path, e),
+                })?;
 
         let mut outputs = HashMap::new();
         outputs.insert("content".to_string(), NodeValue::String(content));

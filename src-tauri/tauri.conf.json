@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "SignalFlow",
-  "version": "0.1.0",
-  "identifier": "com.signalflow.app",
+  "version": "1.0.0",
+  "identifier": "com.signalflow.desktop",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",

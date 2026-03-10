@@ -30,7 +30,9 @@ async fn test_file_read_write_roundtrip() {
     });
 
     let ctx = ExecutionContext::new();
-    let write_result = write_executor.execute(write_inputs, write_config, &ctx).await;
+    let write_result = write_executor
+        .execute(write_inputs, write_config, &ctx)
+        .await;
     assert!(write_result.is_ok(), "File write should succeed");
 
     // Read file back

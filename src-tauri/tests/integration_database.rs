@@ -16,7 +16,11 @@ fn test_database_initialization() {
     let journal_mode: String = conn
         .query_row("PRAGMA journal_mode", [], |row| row.get(0))
         .unwrap();
-    assert_eq!(journal_mode.to_lowercase(), "wal", "WAL mode should be enabled");
+    assert_eq!(
+        journal_mode.to_lowercase(),
+        "wal",
+        "WAL mode should be enabled"
+    );
 }
 
 #[test]
@@ -29,14 +33,12 @@ fn test_save_and_load_flow() {
     let flow = FlowDocument {
         id: Some("test-flow-1".to_string()),
         name: "Test Flow".to_string(),
-        nodes: vec![
-            FlowNode {
-                id: "node-1".to_string(),
-                node_type: "textInput".to_string(),
-                position: Position { x: 0.0, y: 0.0 },
-                data: serde_json::json!({"value": "Hello"}),
-            },
-        ],
+        nodes: vec![FlowNode {
+            id: "node-1".to_string(),
+            node_type: "textInput".to_string(),
+            position: Position { x: 0.0, y: 0.0 },
+            data: serde_json::json!({"value": "Hello"}),
+        }],
         edges: vec![],
         viewport: Viewport::default(),
     };
@@ -109,8 +111,7 @@ fn test_list_flows() {
     assert_eq!(flow_list.len(), 3, "Should have 3 flows");
 
     // Verify all saved flow names are present.
-    let names: std::collections::HashSet<String> =
-        flow_list.into_iter().map(|f| f.name).collect();
+    let names: std::collections::HashSet<String> = flow_list.into_iter().map(|f| f.name).collect();
     assert!(names.contains("Flow 1"));
     assert!(names.contains("Flow 2"));
     assert!(names.contains("Flow 3"));
@@ -184,7 +185,10 @@ fn test_save_flow_auto_id() {
     assert!(saved_id.is_ok(), "Should auto-generate ID");
 
     let id = saved_id.unwrap();
-    assert!(id.starts_with("flow_"), "Auto-generated ID should start with 'flow_'");
+    assert!(
+        id.starts_with("flow_"),
+        "Auto-generated ID should start with 'flow_'"
+    );
 
     // Verify can load by auto-generated ID
     let loaded = db.load_flow(&id);

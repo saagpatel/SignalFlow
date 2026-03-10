@@ -14,6 +14,7 @@ import {
 import { useUiStore } from "../../stores/uiStore";
 import { useFlowStore } from "../../stores/flowStore";
 import { useProjectStore } from "../../stores/projectStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 import { useExecution } from "../../hooks/useExecution";
 import { useSaveFlow } from "../../hooks/useSaveFlow";
 
@@ -25,18 +26,22 @@ export function TopToolbar({ onSettingsClick }: TopToolbarProps) {
   const togglePalette = useUiStore((s) => s.togglePalette);
   const toggleInspector = useUiStore((s) => s.toggleInspector);
   const toggleExecutionPanel = useUiStore((s) => s.toggleExecutionPanel);
-  const toggleTheme = useUiStore((s) => s.toggleTheme);
-  const theme = useUiStore((s) => s.theme);
   const flowName = useProjectStore((s) => s.currentFlowName);
   const isDirty = useProjectStore((s) => s.isDirty);
   const setFlowName = useProjectStore((s) => s.setFlowName);
   const nodes = useFlowStore((s) => s.nodes);
+  const theme = useSettingsStore((s) => s.theme);
+  const setTheme = useSettingsStore((s) => s.setTheme);
 
   const undo = useFlowStore.temporal.getState().undo;
   const redo = useFlowStore.temporal.getState().redo;
 
   const { run, stop, status } = useExecution();
   const { save } = useSaveFlow();
+
+  const handleToggleTheme = async () => {
+    await setTheme(theme === "dark" ? "light" : "dark");
+  };
 
   return (
     <div className="flex h-10 items-center justify-between border-b border-panel-border bg-panel-bg px-3">
@@ -57,7 +62,11 @@ export function TopToolbar({ onSettingsClick }: TopToolbarProps) {
           aria-label="Flow name"
         />
         {isDirty && (
-          <span className="text-xs text-text-secondary" title="Unsaved changes" aria-label="Unsaved changes">
+          <span
+            className="text-xs text-text-secondary"
+            title="Unsaved changes"
+            aria-label="Unsaved changes"
+          >
             *
           </span>
         )}
@@ -130,12 +139,18 @@ export function TopToolbar({ onSettingsClick }: TopToolbarProps) {
             <PanelRight size={14} aria-hidden="true" />
           </button>
           <button
-            onClick={toggleTheme}
+            onClick={() => {
+              void handleToggleTheme();
+            }}
             className="rounded p-1.5 text-text-secondary hover:bg-panel-border hover:text-text-primary"
             aria-label="Toggle Theme"
             title="Toggle Theme"
           >
-            {theme === "dark" ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
+            {theme === "dark" ? (
+              <Sun size={14} aria-hidden="true" />
+            ) : (
+              <Moon size={14} aria-hidden="true" />
+            )}
           </button>
           {onSettingsClick && (
             <button

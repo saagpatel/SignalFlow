@@ -49,7 +49,10 @@ mod tests {
     async fn test_split_comma() {
         let executor = SplitExecutor;
         let mut inputs = HashMap::new();
-        inputs.insert("input".to_string(), NodeValue::String("a, b, c".to_string()));
+        inputs.insert(
+            "input".to_string(),
+            NodeValue::String("a, b, c".to_string()),
+        );
         let config = serde_json::json!({ "delimiter": "," });
         let ctx = ExecutionContext::new();
         let result = executor.execute(inputs, config, &ctx).await.unwrap();

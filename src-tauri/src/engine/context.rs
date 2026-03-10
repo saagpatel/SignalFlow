@@ -6,6 +6,7 @@ use tokio::sync::RwLock;
 use crate::error::AppError;
 use crate::types::NodeValue;
 
+#[derive(Default)]
 pub struct ExecutionContext {
     pub node_outputs: Arc<RwLock<HashMap<String, HashMap<String, NodeValue>>>>,
     pub cancelled: Arc<AtomicBool>,
@@ -34,11 +35,7 @@ impl ExecutionContext {
         lock.insert(node_id.to_string(), outputs);
     }
 
-    pub async fn get_input(
-        &self,
-        source_node_id: &str,
-        source_handle: &str,
-    ) -> NodeValue {
+    pub async fn get_input(&self, source_node_id: &str, source_handle: &str) -> NodeValue {
         let lock = self.node_outputs.read().await;
         lock.get(source_node_id)
             .and_then(|outputs| outputs.get(source_handle))

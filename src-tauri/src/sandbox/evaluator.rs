@@ -20,10 +20,9 @@ pub fn evaluate_expression_with_scope(
         return Err("Expression is empty".to_string());
     }
 
-    let runtime =
-        Runtime::new().map_err(|e| format!("Failed to create JS runtime: {}", e))?;
-    let context = Context::full(&runtime)
-        .map_err(|e| format!("Failed to create JS context: {}", e))?;
+    let runtime = Runtime::new().map_err(|e| format!("Failed to create JS runtime: {}", e))?;
+    let context =
+        Context::full(&runtime).map_err(|e| format!("Failed to create JS context: {}", e))?;
     let wrapped_code = wrap_code_for_execution(code);
 
     context.with(|ctx| {
@@ -57,8 +56,8 @@ fn inject_scope(
         .into_iter()
         .map(|(key, value)| (key, value.to_json_value()))
         .collect();
-    let scope_json = serde_json::to_string(&scope)
-        .map_err(|e| format!("Failed to serialize scope: {}", e))?;
+    let scope_json =
+        serde_json::to_string(&scope).map_err(|e| format!("Failed to serialize scope: {}", e))?;
     let setup_script = format!("Object.assign(globalThis, {scope_json});");
     ctx.eval::<(), _>(setup_script)
         .map_err(|e| format!("Failed to inject scope variables: {}", e))

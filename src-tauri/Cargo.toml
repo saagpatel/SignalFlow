@@ -1,8 +1,8 @@
 [package]
 name = "signalflow"
-version = "0.1.0"
+version = "1.0.0"
 description = "Visual dataflow programming desktop app"
-authors = ["you"]
+authors = ["SignalFlow Maintainers"]
 edition = "2021"
 
 [lib]

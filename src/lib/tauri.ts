@@ -50,7 +50,7 @@ export interface ExecutionResult {
 
 export async function executeFlow(
   flow: FlowDocument,
-  onProgress: (event: ExecutionEvent) => void
+  onProgress: (event: ExecutionEvent) => void,
 ): Promise<ExecutionResult> {
   const channel = new Channel<ExecutionEvent>();
   channel.onmessage = onProgress;
@@ -94,20 +94,23 @@ export interface ModelInfo {
   modified_at: string;
 }
 
-export async function checkOllama(): Promise<OllamaStatus> {
-  return invoke("check_ollama");
+export async function checkOllama(endpoint?: string): Promise<OllamaStatus> {
+  return invoke("check_ollama", { endpoint });
 }
 
-export async function listModels(): Promise<ModelInfo[]> {
-  return invoke("list_models");
+export async function listModels(endpoint?: string): Promise<ModelInfo[]> {
+  return invoke("list_models", { endpoint });
 }
 
 export async function getPreference(key: string): Promise<string | null> {
   return invoke("get_preference", { key });
 }
 
-export async function setPreference(key: string, value: string): Promise<void> {
-  return invoke("set_preference", { key, value });
+export async function setPreference(
+  key: string,
+  value: string | number | boolean,
+): Promise<void> {
+  return invoke("set_preference", { key, value: String(value) });
 }
 
 export async function getNodeDefinitions(): Promise<

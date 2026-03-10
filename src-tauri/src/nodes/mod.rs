@@ -1,9 +1,9 @@
-pub mod registry;
-pub mod input;
-pub mod transform;
-pub mod output;
-pub mod control;
 pub mod ai;
+pub mod control;
+pub mod input;
+pub mod output;
+pub mod registry;
+pub mod transform;
 
 use async_trait::async_trait;
 use std::collections::HashMap;

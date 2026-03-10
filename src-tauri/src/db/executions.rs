@@ -1,6 +1,6 @@
+use super::Database;
 use crate::error::AppError;
 use crate::types::ExecutionResult;
-use super::Database;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,11 +14,7 @@ pub struct ExecutionRecord {
 }
 
 impl Database {
-    pub fn save_execution(
-        &self,
-        flow_id: &str,
-        result: &ExecutionResult,
-    ) -> Result<(), AppError> {
+    pub fn save_execution(&self, flow_id: &str, result: &ExecutionResult) -> Result<(), AppError> {
         let conn = self.conn()?;
         let result_data = serde_json::to_string(result)?;
 
@@ -37,10 +33,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn get_execution_history(
-        &self,
-        flow_id: &str,
-    ) -> Result<Vec<ExecutionRecord>, AppError> {
+    pub fn get_execution_history(&self, flow_id: &str) -> Result<Vec<ExecutionRecord>, AppError> {
         let conn = self.conn()?;
         let mut stmt = conn
             .prepare(

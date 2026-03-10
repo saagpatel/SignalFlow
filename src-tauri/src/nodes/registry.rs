@@ -1,14 +1,20 @@
 use std::collections::HashMap;
 
-use super::NodeExecutor;
-use super::input::*;
-use super::transform::*;
-use super::output::*;
-use super::control::*;
 use super::ai::*;
+use super::control::*;
+use super::input::*;
+use super::output::*;
+use super::transform::*;
+use super::NodeExecutor;
 
 pub struct NodeRegistry {
     executors: HashMap<String, Box<dyn NodeExecutor>>,
+}
+
+impl Default for NodeRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl NodeRegistry {
@@ -57,6 +63,10 @@ impl NodeRegistry {
 
     pub fn register(&mut self, executor: Box<dyn NodeExecutor>) {
         executors_insert(&mut self.executors, executor);
+    }
+
+    pub fn supported_node_types(&self) -> Vec<&str> {
+        self.executors.keys().map(String::as_str).collect()
     }
 }
 

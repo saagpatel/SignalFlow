@@ -25,10 +25,7 @@ impl NodeExecutor for RegexExecutor {
             .and_then(|v| v.as_string())
             .unwrap_or_default();
 
-        let pattern = config
-            .get("pattern")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let pattern = config.get("pattern").and_then(|v| v.as_str()).unwrap_or("");
 
         let mode = config
             .get("mode")

@@ -77,7 +77,10 @@ impl NodeExecutor for HttpRequestExecutor {
             req = req.body(body);
         }
 
-        let response = req.send().await.map_err(|e| AppError::Http(e.to_string()))?;
+        let response = req
+            .send()
+            .await
+            .map_err(|e| AppError::Http(e.to_string()))?;
         let status = response.status().as_u16();
         let body = response
             .text()

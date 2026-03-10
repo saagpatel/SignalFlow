@@ -20,10 +20,7 @@ impl NodeExecutor for NumberInputExecutor {
         config: serde_json::Value,
         _ctx: &ExecutionContext,
     ) -> Result<HashMap<String, NodeValue>, AppError> {
-        let value = config
-            .get("value")
-            .and_then(|v| v.as_f64())
-            .unwrap_or(0.0);
+        let value = config.get("value").and_then(|v| v.as_f64()).unwrap_or(0.0);
 
         let mut outputs = HashMap::new();
         outputs.insert("value".to_string(), NodeValue::Number(value));

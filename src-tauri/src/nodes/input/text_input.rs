@@ -41,7 +41,10 @@ mod tests {
         let executor = TextInputExecutor;
         let config = serde_json::json!({ "value": "hello world" });
         let ctx = ExecutionContext::new();
-        let result = executor.execute(HashMap::new(), config, &ctx).await.unwrap();
+        let result = executor
+            .execute(HashMap::new(), config, &ctx)
+            .await
+            .unwrap();
         assert_eq!(
             result.get("value").unwrap().as_string().unwrap(),
             "hello world"
@@ -53,7 +56,10 @@ mod tests {
         let executor = TextInputExecutor;
         let config = serde_json::json!({});
         let ctx = ExecutionContext::new();
-        let result = executor.execute(HashMap::new(), config, &ctx).await.unwrap();
+        let result = executor
+            .execute(HashMap::new(), config, &ctx)
+            .await
+            .unwrap();
         assert_eq!(result.get("value").unwrap().as_string().unwrap(), "");
     }
 }

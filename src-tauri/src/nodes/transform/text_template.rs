@@ -23,7 +23,12 @@ impl NodeExecutor for TextTemplateExecutor {
         let template = inputs
             .get("template")
             .and_then(|v| v.as_string())
-            .or_else(|| config.get("template").and_then(|v| v.as_str()).map(String::from))
+            .or_else(|| {
+                config
+                    .get("template")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+            })
             .unwrap_or_default();
 
         let mut result = template.clone();

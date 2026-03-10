@@ -1,29 +1,30 @@
 import { create } from "zustand";
-import { invoke } from "@tauri-apps/api/core";
+import { getPreference, setPreference } from "../lib/tauri";
+
+export const DEFAULT_OLLAMA_ENDPOINT = "http://localhost:11434";
+export const DEFAULT_AUTO_SAVE_INTERVAL = 30000;
+export type ThemeMode = "light" | "dark" | "auto";
 
 interface SettingsStore {
   ollamaEndpoint: string;
-  theme: "light" | "dark" | "auto";
+  theme: ThemeMode;
   autoSaveInterval: number;
 
   setOllamaEndpoint: (endpoint: string) => Promise<void>;
-  setTheme: (theme: "light" | "dark" | "auto") => Promise<void>;
+  setTheme: (theme: ThemeMode) => Promise<void>;
   setAutoSaveInterval: (interval: number) => Promise<void>;
   loadSettings: () => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsStore>((set) => ({
   // Default values
-  ollamaEndpoint: "http://localhost:11434",
+  ollamaEndpoint: DEFAULT_OLLAMA_ENDPOINT,
   theme: "auto",
-  autoSaveInterval: 30000, // 30 seconds
+  autoSaveInterval: DEFAULT_AUTO_SAVE_INTERVAL,
 
   setOllamaEndpoint: async (endpoint: string) => {
     try {
-      await invoke("set_preference", {
-        key: "ollama_endpoint",
-        value: endpoint,
-      });
+      await setPreference("ollama_endpoint", endpoint);
       set({ ollamaEndpoint: endpoint });
     } catch (error) {
       console.error("Failed to save Ollama endpoint:", error);
@@ -31,12 +32,9 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     }
   },
 
-  setTheme: async (theme: "light" | "dark" | "auto") => {
+  setTheme: async (theme: ThemeMode) => {
     try {
-      await invoke("set_preference", {
-        key: "theme",
-        value: theme,
-      });
+      await setPreference("theme", theme);
       set({ theme });
       applyTheme(theme);
     } catch (error) {
@@ -47,10 +45,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
 
   setAutoSaveInterval: async (interval: number) => {
     try {
-      await invoke("set_preference", {
-        key: "auto_save_interval",
-        value: interval,
-      });
+      await setPreference("auto_save_interval", interval);
       set({ autoSaveInterval: interval });
     } catch (error) {
       console.error("Failed to save auto-save interval:", error);
@@ -60,23 +55,17 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
 
   loadSettings: async () => {
     try {
-      // Load Ollama endpoint
-      const endpoint = await invoke<string>("get_preference", {
-        key: "ollama_endpoint",
-      }).catch(() => "http://localhost:11434");
+      const [endpoint, savedTheme, savedInterval] = await Promise.all([
+        getPreference("ollama_endpoint").catch(() => null),
+        getPreference("theme").catch(() => null),
+        getPreference("auto_save_interval").catch(() => null),
+      ]);
 
-      // Load theme
-      const theme = (await invoke<string>("get_preference", {
-        key: "theme",
-      }).catch(() => "auto")) as "light" | "dark" | "auto";
-
-      // Load auto-save interval
-      const interval = await invoke<number>("get_preference", {
-        key: "auto_save_interval",
-      }).catch(() => 30000);
+      const theme = isThemeMode(savedTheme) ? savedTheme : "auto";
+      const interval = parseAutoSaveInterval(savedInterval);
 
       set({
-        ollamaEndpoint: endpoint,
+        ollamaEndpoint: endpoint ?? DEFAULT_OLLAMA_ENDPOINT,
         theme,
         autoSaveInterval: interval,
       });
@@ -91,22 +80,17 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
 /**
  * Apply theme to document
  */
-function applyTheme(theme: "light" | "dark" | "auto") {
+function applyTheme(theme: ThemeMode) {
   const root = document.documentElement;
+  const resolvedTheme =
+    theme === "auto"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : theme;
 
-  if (theme === "dark") {
-    root.classList.add("dark");
-  } else if (theme === "light") {
-    root.classList.remove("dark");
-  } else {
-    // Auto: use system preference
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    if (prefersDark) {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-  }
+  root.classList.toggle("dark", resolvedTheme === "dark");
+  root.classList.toggle("light", resolvedTheme === "light");
 }
 
 // Listen for system theme changes when in auto mode
@@ -117,11 +101,21 @@ if (typeof window !== "undefined") {
       const theme = useSettingsStore.getState().theme;
       if (theme === "auto") {
         const root = document.documentElement;
-        if (e.matches) {
-          root.classList.add("dark");
-        } else {
-          root.classList.remove("dark");
-        }
+        root.classList.toggle("dark", e.matches);
+        root.classList.toggle("light", !e.matches);
       }
     });
+}
+
+function isThemeMode(value: string | null): value is ThemeMode {
+  return value === "light" || value === "dark" || value === "auto";
+}
+
+function parseAutoSaveInterval(value: string | null): number {
+  if (value == null) return DEFAULT_AUTO_SAVE_INTERVAL;
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0
+    ? parsed
+    : DEFAULT_AUTO_SAVE_INTERVAL;
 }

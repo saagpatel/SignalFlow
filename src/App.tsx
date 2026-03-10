@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { FlowCanvas } from "./components/canvas/FlowCanvas";
 import { NodePalette } from "./components/palette/NodePalette";
@@ -22,46 +22,42 @@ function AppInner() {
   const isPaletteOpen = useUiStore((s) => s.isPaletteOpen);
   const isInspectorOpen = useUiStore((s) => s.isInspectorOpen);
   const isExecutionPanelOpen = useUiStore((s) => s.isExecutionPanelOpen);
-  const markDirty = useProjectStore((s) => s.markDirty);
   const loading = useProjectStore((s) => s.loading);
-  const currentFlowId = useProjectStore((s) => s.currentFlowId);
+  const activeScreen = useProjectStore((s) => s.activeScreen);
 
   const { run } = useExecution();
   const { save } = useSaveFlow();
   const { loadLastFlow } = useFlowManager();
   const loadSettings = useSettingsStore((s) => s.loadSettings);
+  const autoSaveInterval = useSettingsStore((s) => s.autoSaveInterval);
 
   // Settings modal state
   const [showSettings, setShowSettings] = useState(false);
 
   // Startup: load settings and last flow
-  const [startupDone, setStartupDone] = useState(false);
+  const startupDoneRef = useRef(false);
   useEffect(() => {
-    if (!startupDone) {
-      setStartupDone(true);
-      loadSettings();
-      loadLastFlow();
+    if (!startupDoneRef.current) {
+      startupDoneRef.current = true;
+      void (async () => {
+        await loadSettings();
+        await loadLastFlow();
+      })();
     }
-  }, [startupDone, loadLastFlow, loadSettings]);
+  }, [loadLastFlow, loadSettings]);
 
-  // Mark dirty on any flow change
   const nodes = useFlowStore((s) => s.nodes);
   const edges = useFlowStore((s) => s.edges);
-  useEffect(() => {
-    if (nodes.length > 0 || edges.length > 0) {
-      markDirty();
-    }
-  }, [nodes, edges, markDirty]);
 
   // Auto-save debounced
   const isDirty = useProjectStore((s) => s.isDirty);
   useEffect(() => {
-    if (!isDirty || nodes.length === 0) return;
+    if (!isDirty || activeScreen !== "editor" || autoSaveInterval === 0) return;
     const timer = setTimeout(() => {
-      save();
-    }, 2000);
+      void save();
+    }, autoSaveInterval);
     return () => clearTimeout(timer);
-  }, [isDirty, nodes, edges, save]);
+  }, [activeScreen, autoSaveInterval, edges, isDirty, nodes, save]);
 
   // Clipboard for copy/paste
   const copySelected = useFlowStore((s) => s.copySelected);
@@ -114,7 +110,7 @@ function AppInner() {
           break;
       }
     },
-    [save, run, copySelected, pasteClipboard, duplicateSelected, selectAll]
+    [save, run, copySelected, pasteClipboard, duplicateSelected, selectAll],
   );
 
   useEffect(() => {
@@ -123,7 +119,7 @@ function AppInner() {
   }, [handleKeyDown]);
 
   // Show welcome screen when no flow is loaded and not loading
-  const showWelcome = !loading && nodes.length === 0 && currentFlowId === null;
+  const showWelcome = !loading && activeScreen === "welcome";
 
   return (
     <div className="flex h-screen flex-col bg-canvas-bg">
@@ -139,6 +135,13 @@ function AppInner() {
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="relative flex-1">
             <FlowCanvas />
+            {loading && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-canvas-bg/80 backdrop-blur-sm">
+                <div className="rounded-lg border border-panel-border bg-panel-bg px-4 py-3 text-sm text-text-secondary shadow-lg">
+                  Loading workspace...
+                </div>
+              </div>
+            )}
             {showWelcome && <WelcomeScreen />}
           </div>
 

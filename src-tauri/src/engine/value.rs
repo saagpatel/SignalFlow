@@ -7,13 +7,11 @@ impl NodeValue {
             NodeValue::Number(n) => n.to_string(),
             NodeValue::Boolean(b) => b.to_string(),
             NodeValue::Null => String::new(),
-            NodeValue::Array(arr) => serde_json::to_string(
-                &arr.iter().map(|v| v.to_json_value()).collect::<Vec<_>>(),
-            )
-            .unwrap_or_default(),
-            NodeValue::Object(obj) => {
-                serde_json::to_string(obj).unwrap_or_default()
+            NodeValue::Array(arr) => {
+                serde_json::to_string(&arr.iter().map(|v| v.to_json_value()).collect::<Vec<_>>())
+                    .unwrap_or_default()
             }
+            NodeValue::Object(obj) => serde_json::to_string(obj).unwrap_or_default(),
             NodeValue::File { path } => path.clone(),
         }
     }

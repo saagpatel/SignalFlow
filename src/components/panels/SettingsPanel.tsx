@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, Check, AlertCircle } from "lucide-react";
 import { useSettingsStore } from "../../stores/settingsStore";
-import { invoke } from "@tauri-apps/api/core";
+import { checkOllama } from "../../lib/tauri";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -40,10 +40,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const checkOllamaHealth = async () => {
     setOllamaStatus({ checking: true, available: false });
     try {
-      const status = await invoke<{ available: boolean; error?: string }>(
-        "check_ollama"
-      );
-      setOllamaStatus({ checking: false, available: status.available, error: status.error });
+      const status = await checkOllama(endpoint);
+      setOllamaStatus({
+        checking: false,
+        available: status.available,
+        error: status.error ?? undefined,
+      });
     } catch (error) {
       setOllamaStatus({
         checking: false,

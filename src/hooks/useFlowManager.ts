@@ -16,7 +16,10 @@ import type { Node, Edge } from "@xyflow/react";
 
 const LAST_FLOW_KEY = "lastOpenFlowId";
 
-function flowDocToReactFlow(doc: FlowDocument): { nodes: Node[]; edges: Edge[] } {
+function flowDocToReactFlow(doc: FlowDocument): {
+  nodes: Node[];
+  edges: Edge[];
+} {
   const nodes: Node[] = doc.nodes.map((n) => ({
     id: n.id,
     type: n.type,
@@ -40,9 +43,12 @@ export function useFlowManager() {
   const clear = useFlowStore((s) => s.clear);
   const nodes = useFlowStore((s) => s.nodes);
   const edges = useFlowStore((s) => s.edges);
+  const viewport = useFlowStore((s) => s.viewport);
   const setCurrentFlow = useProjectStore((s) => s.setCurrentFlow);
   const setRecentFlows = useProjectStore((s) => s.setRecentFlows);
   const setLoading = useProjectStore((s) => s.setLoading);
+  const showEditor = useProjectStore((s) => s.showEditor);
+  const showWelcome = useProjectStore((s) => s.showWelcome);
   const currentFlowId = useProjectStore((s) => s.currentFlowId);
   const markSaved = useProjectStore((s) => s.markSaved);
   const resetExecution = useExecutionStore((s) => s.reset);
@@ -62,25 +68,31 @@ export function useFlowManager() {
       try {
         const doc = await loadFlow(id);
         const { nodes: rfNodes, edges: rfEdges } = flowDocToReactFlow(doc);
-        setFlow(rfNodes, rfEdges);
+        setFlow(rfNodes, rfEdges, doc.viewport, { persistedViewport: true });
         setCurrentFlow(doc.id, doc.name);
+        showEditor();
         resetExecution();
         await setPreference(LAST_FLOW_KEY, id);
         toast({ title: `Loaded "${doc.name}"`, variant: "success" });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        toast({ title: "Failed to load flow", description: msg, variant: "error" });
+        toast({
+          title: "Failed to load flow",
+          description: msg,
+          variant: "error",
+        });
       }
     },
-    [setFlow, setCurrentFlow, resetExecution, toast]
+    [resetExecution, setCurrentFlow, setFlow, showEditor, toast],
   );
 
   const newFlow = useCallback(() => {
     clear();
     setCurrentFlow(null, "Untitled Flow");
+    showEditor();
     resetExecution();
     toast({ title: "New flow created", variant: "info" });
-  }, [clear, setCurrentFlow, resetExecution, toast]);
+  }, [clear, resetExecution, setCurrentFlow, showEditor, toast]);
 
   const removeFlow = useCallback(
     async (id: string) => {
@@ -89,6 +101,7 @@ export function useFlowManager() {
         if (currentFlowId === id) {
           clear();
           setCurrentFlow(null, "Untitled Flow");
+          showWelcome();
           resetExecution();
         }
         await refreshFlowList();
@@ -98,7 +111,15 @@ export function useFlowManager() {
         toast({ title: "Delete failed", description: msg, variant: "error" });
       }
     },
-    [currentFlowId, clear, setCurrentFlow, resetExecution, refreshFlowList, toast]
+    [
+      currentFlowId,
+      clear,
+      refreshFlowList,
+      resetExecution,
+      setCurrentFlow,
+      showWelcome,
+      toast,
+    ],
   );
 
   const saveAs = useCallback(
@@ -121,12 +142,13 @@ export function useFlowManager() {
           sourceHandle: e.sourceHandle ?? null,
           targetHandle: e.targetHandle ?? null,
         })),
-        viewport: { x: 0, y: 0, zoom: 1 },
+        viewport,
       };
 
       try {
         const newId = await saveFlow(flow);
         setCurrentFlow(newId, name);
+        showEditor();
         markSaved(newId);
         await setPreference(LAST_FLOW_KEY, newId);
         await refreshFlowList();
@@ -136,7 +158,16 @@ export function useFlowManager() {
         toast({ title: "Save failed", description: msg, variant: "error" });
       }
     },
-    [nodes, edges, setCurrentFlow, markSaved, refreshFlowList, toast]
+    [
+      edges,
+      markSaved,
+      nodes,
+      refreshFlowList,
+      setCurrentFlow,
+      showEditor,
+      toast,
+      viewport,
+    ],
   );
 
   const loadLastFlow = useCallback(async () => {
@@ -146,13 +177,16 @@ export function useFlowManager() {
       const lastId = await getPreference(LAST_FLOW_KEY);
       if (lastId) {
         await openFlow(lastId);
+      } else {
+        showWelcome();
       }
     } catch {
       // Silent — fall through to welcome screen
+      showWelcome();
     } finally {
       setLoading(false);
     }
-  }, [refreshFlowList, openFlow, setLoading]);
+  }, [openFlow, refreshFlowList, setLoading, showWelcome]);
 
   return {
     openFlow,

@@ -1,10 +1,10 @@
-pub mod flows;
 pub mod executions;
+pub mod flows;
 pub mod settings;
 
 use rusqlite::Connection;
-use std::sync::Mutex;
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 use crate::error::AppError;
 
@@ -21,9 +21,8 @@ impl Database {
             })?;
         }
 
-        let conn = Connection::open(path).map_err(|e| {
-            AppError::Database(format!("Failed to open database: {}", e))
-        })?;
+        let conn = Connection::open(path)
+            .map_err(|e| AppError::Database(format!("Failed to open database: {}", e)))?;
 
         // Enable WAL mode for better concurrency
         conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")
@@ -39,9 +38,10 @@ impl Database {
     }
 
     fn run_migrations(&self) -> Result<(), AppError> {
-        let conn = self.conn.lock().map_err(|e| {
-            AppError::Database(format!("Failed to lock database: {}", e))
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Database(format!("Failed to lock database: {}", e)))?;
 
         conn.execute_batch(
             "

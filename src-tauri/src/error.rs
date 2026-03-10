@@ -3,10 +3,7 @@ use serde::Serialize;
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("Node error [{node_id}]: {message}")]
-    NodeExecution {
-        node_id: String,
-        message: String,
-    },
+    NodeExecution { node_id: String, message: String },
 
     #[error("Graph error: {0}")]
     Graph(String),

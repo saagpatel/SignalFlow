@@ -31,4 +31,6 @@ export const nodeTypes: NodeTypes = {
   map: GenericNode,
   merge: GenericNode,
   split: GenericNode,
+  tryCatch: GenericNode,
+  forEach: GenericNode,
 };
