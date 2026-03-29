@@ -102,14 +102,14 @@ jobs:
         run: pnpm release:validate-macos
 
       - name: Upload DMG artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: signalflow-ci-macos-dmg
           if-no-files-found: error
           path: src-tauri/target/release/bundle/dmg/*.dmg
 
       - name: Upload app archive artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: signalflow-ci-macos-app
           if-no-files-found: error
