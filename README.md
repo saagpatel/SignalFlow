@@ -1,268 +1,68 @@
 # SignalFlow
 
-**Wire nodes. Build pipelines. Run locally.**
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=white)](#) [![Rust](https://img.shields.io/badge/Rust-dea584?style=flat-square&logo=rust&logoColor=white)](#) [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](#)
 
-SignalFlow is a visual dataflow programming app for your desktop. Think Unreal Blueprints meets ComfyUI — drag nodes onto a canvas, connect them with wires, hit Run, and watch your data flow through the pipeline in real time.
+> Wire nodes together, hit Run, watch your data travel through the pipeline — no cloud, no accounts, no telemetry
 
-Built with Tauri 2, React 19, and Rust. Everything runs on your machine. No cloud. No accounts. No telemetry.
+SignalFlow is a visual dataflow programming desktop app. Think Unreal Blueprints meets ComfyUI — drag nodes onto a canvas, connect them with wires, and build data pipelines that run entirely on your machine. Ollama integration lets you drop local LLM nodes right into any flow.
 
-Current release posture:
+## Features
 
-- macOS-first `v1.0.0` target
-- Manual GitHub Releases for first production launch
-- Ollama is a core supported feature, configured through the in-app settings panel
-- Canonical local verification runs through `pnpm verify`
-- Release metadata is synced to `1.0.0` with bundle identifier `com.signalflow.desktop`
+- **Node canvas** — drag, connect, and configure nodes with a ReactFlow-powered graph editor; undo/redo everything
+- **Rich node library** — file I/O, JSON parsing, HTTP requests, regex transforms, conditional routing, and Ollama prompt/chat nodes
+- **Live execution** — watch data animate through your graph in real time; inline previews and a collapsible JSON inspector show exactly what's flowing
+- **Pre-run validation** — misconfigured nodes are flagged before execution so you catch mistakes early
+- **Flow management** — create, open, save, and delete multiple flows from a welcome screen or command palette
+- **Persistent storage** — all flows auto-save to a local SQLite database in WAL mode; dark and light themes included
 
-Launch Contract: see `docs/launch-contract.md`
-
-Release Readiness: see `docs/release-readiness.md`
-
----
-
-## What Can You Do With It?
-
-- Read files, parse JSON, filter arrays, merge data, write results
-- Make HTTP requests and chain API calls together
-- Run regex transforms, text templates, conditional routing
-- Talk to local LLMs via Ollama — prompt nodes, chat nodes, the works
-- Watch execution animate through your graph in real time
-- Manage multiple flows — create, open, save, delete from the welcome screen or command palette
-- See data flowing through your pipeline with inline node previews and a collapsible JSON inspector
-- Catch mistakes early with pre-run validation that highlights misconfigured nodes
-- Configure nodes with specialized editors — file pickers, model selectors, sliders, key-value editors
-- Undo/redo everything, auto-save to SQLite, dark/light themes
-
-## The Stack
-
-| Layer           | Tech                                     |
-| --------------- | ---------------------------------------- |
-| Desktop Shell   | **Tauri 2**                              |
-| Frontend        | **React 19** + TypeScript strict + Vite  |
-| Node Graph      | **@xyflow/react** (ReactFlow 12)         |
-| Styling         | **Tailwind CSS 4**                       |
-| State           | **Zustand 5** + zundo (undo/redo)        |
-| Backend         | **Rust** + tokio async runtime           |
-| Graph Engine    | **petgraph** (toposort, cycle detection) |
-| Database        | **rusqlite** (WAL mode, bundled SQLite)  |
-| LLM             | **Ollama** (local models, streaming)     |
-| Command Palette | **cmdk**                                 |
-
-## Node Library
-
-**20 node types** across 6 categories:
-
-| Category  | Nodes                                                                   |
-| --------- | ----------------------------------------------------------------------- |
-| Input     | Text Input, Number Input, File Read, HTTP Request                       |
-| Transform | JSON Parse, Text Template, Regex, Filter, Map, Merge, Split             |
-| Output    | File Write, Debug                                                       |
-| Control   | Conditional (if/else branching), Code (JavaScript), Try/Catch, For Each |
-| AI        | LLM Prompt, LLM Chat                                                    |
-
-Every node has typed ports (String, Number, Boolean, Array, Object, File, Any) with color-coded handles and connection validation. Nodes display inline config previews and output data directly on the canvas.
-
-## Key Features
-
-### Flow Management
-
-- **Welcome screen** with recent flows list on startup
-- **Auto-load** your last flow when you relaunch
-- **Command palette** (Cmd+K) with New Flow, Open Flow, Save As, Delete Flow
-- **Unsaved changes detection** with confirmation dialogs
-
-### Smart Node Configuration
-
-- **Config schema system** — each node type declares its fields, and the inspector renders specialized widgets automatically
-- **File path picker** — native OS file dialogs for File Read/Write nodes
-- **Model selector** — dropdown populated from your local Ollama models with availability detection
-- **Sliders, dropdowns, key-value editors, checkboxes** — the right widget for each field
-
-### Data Visibility
-
-- **Inline output previews** on every node after execution (strings, arrays, objects, errors)
-- **Collapsible JSON tree** in the inspector with type badges and copy-to-clipboard
-- **50KB output cap** to keep the UI responsive on large payloads
-
-### Pre-Run Validation
-
-- Catches disconnected required inputs, empty config values, and orphan nodes
-- **Clickable warnings** that select the problem node on the canvas
-- Warnings shown as toasts and in the execution panel before logs
-
-### Toast Notifications
-
-- Success, error, warning, and info toasts for save, execution, validation, and flow management
-- Auto-dismiss after 4 seconds, max 5 visible
-
-### Advanced Features
-
-- **JavaScript Expression Evaluation** — Filter, Map, and Conditional nodes support custom JavaScript expressions
-  - Access `item` and `index` in Map/Filter nodes
-  - Access `input` in Conditional and Code nodes
-  - Full JavaScript expression support with syntax validation
-- **Settings Panel** — Configure Ollama endpoint, theme (light/dark/auto), and auto-save interval
-  - Test Ollama connection with live status indicator
-  - System theme detection for auto mode
-- **Error Context** — All error messages include node ID for precise debugging
-- **Try/Catch Node** — Handle errors gracefully without failing the entire flow
-- **For Each Node** — Iterate over arrays with expression-based item transforms
-- **CI/CD Pipeline** — Automated testing on every push and PR
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 22+
-- [pnpm](https://pnpm.io/) 10+
-- [Rust](https://www.rust-lang.org/tools/install) stable
-- [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS
-- [Ollama](https://ollama.com/) (optional, for AI nodes)
+- Node.js 18+
+- pnpm 8+
+- Rust stable toolchain (via [rustup](https://rustup.rs))
+- macOS (v1.0 target; Linux/Windows support planned)
+- [Ollama](https://ollama.com) for LLM nodes (optional)
 
-### Run in Dev Mode
+### Installation
 
 ```bash
+git clone https://github.com/saagpatel/SignalFlow.git
+cd SignalFlow
 pnpm install
+```
+
+### Usage
+
+```bash
+# Development mode (hot reload)
 pnpm tauri dev
-```
 
-### Run in Lean Dev Mode (Lower Disk Usage)
+# Run tests
+pnpm test
 
-```bash
-pnpm dev:lean
-```
-
-What lean mode does:
-
-- Starts the app with the same `pnpm tauri dev` workflow.
-- Redirects heavy build caches to a temporary directory:
-  - Vite cache (`VITE_CACHE_DIR`)
-  - Rust target directory (`CARGO_TARGET_DIR`)
-- Automatically deletes that temporary cache directory when the dev process exits.
-
-Tradeoff:
-
-- Uses less persistent disk in the repo.
-- Cold starts are slower because Rust/Vite artifacts are rebuilt each session.
-- Dependency install cache (`node_modules`) is preserved for reasonable speed.
-
-### Cleanup Commands
-
-Targeted cleanup (heavy build artifacts only):
-
-```bash
-pnpm clean:heavy
-```
-
-Removes:
-
-- `dist`
-- `dist-ssr`
-- `node_modules/.vite`
-- `src-tauri/target`
-
-Full local cleanup (all reproducible local caches in this repo):
-
-```bash
-pnpm clean:all
-```
-
-### Build for Production
-
-```bash
+# Production build
 pnpm tauri build
-pnpm release:checksum
 ```
 
-The `.dmg` (macOS) or installer lands in `src-tauri/target/release/bundle/`.
+## Tech Stack
 
-### Run Tests
+| Layer | Technology |
+|-------|------------|
+| Desktop shell | Tauri 2 |
+| Frontend | React 19 + TypeScript strict + Vite |
+| Node graph | @xyflow/react (ReactFlow 12) |
+| Styling | Tailwind CSS 4 |
+| State | Zustand 5 + zundo (undo/redo) |
+| Backend | Rust + tokio async runtime |
+| Graph engine | petgraph (toposort, cycle detection) |
+| Database | rusqlite (WAL mode, bundled SQLite) |
+| Tests | Vitest |
 
-```bash
-pnpm lint                      # Frontend lint
-pnpm test                      # Frontend (Vitest)
-cd src-tauri && cargo test     # Backend (Rust)
-```
+## Architecture
 
-**Test Coverage:**
-
-- HTTP integration tests (local mock server coverage)
-- File I/O tests (read/write, path traversal prevention)
-- Database tests (CRUD, concurrency, WAL mode)
-- Ollama integration tests (requires local Ollama, use `cargo test -- --ignored`)
-- Expression evaluation tests
-- Node executor tests
-- Launch verification can be run end to end with `pnpm verify`
-
-### Performance Baselines
-
-```bash
-pnpm perf:bundle
-pnpm perf:build
-pnpm perf:baseline
-```
-
-This refreshes the tracked bundle/build baselines used by the perf comparison workflows after an intentional change.
-
-### Codex Execution Helpers
-
-```bash
-.codex/actions/bootstrap.sh
-.codex/actions/verify.sh
-.codex/actions/release-rehearsal.sh
-```
-
-These scripts provide a consistent bootstrap, verify, and release-rehearsal path for future worktrees.
-
-## Keyboard Shortcuts
-
-| Shortcut                | Action             |
-| ----------------------- | ------------------ |
-| `Cmd+K`                 | Command palette    |
-| `Cmd+Enter`             | Run flow           |
-| `Cmd+S`                 | Save               |
-| `Cmd+Z` / `Cmd+Shift+Z` | Undo / Redo        |
-| `Cmd+C` / `Cmd+V`       | Copy / Paste nodes |
-| `Cmd+D`                 | Duplicate selected |
-| `Cmd+A`                 | Select all         |
-| `Backspace`             | Delete selected    |
-
-## Project Structure
-
-```
-src/                    # React frontend
-  components/
-    canvas/             # Flow canvas, animated edges
-    command-palette/    # Cmd+K command palette with flow management
-    nodes/              # BaseNode + 12 specialized node components + DataPreview
-    panels/             # Inspector, execution panel, config field editors (9 widgets)
-    shared/             # Toast, ConfirmDialog
-    toolbar/            # Top toolbar, status bar
-    welcome/            # Welcome screen with recent flows
-  stores/               # Zustand stores (flow, execution, UI, project)
-  hooks/                # useExecution, useSaveFlow, useFlowManager, useToast
-  lib/                  # Node registry, port types, flow validator, Tauri IPC
-
-src-tauri/src/          # Rust backend
-  engine/               # Graph builder, layer executor, execution context
-  nodes/                # 16 node executors (input, transform, output, control, AI)
-  db/                   # SQLite persistence (flows, executions, settings)
-  ollama/               # Ollama HTTP client
-  commands/             # Tauri IPC command handlers
-```
-
-## How Execution Works
-
-1. Frontend validates the flow graph (checks connections, config, orphans)
-2. Serializes the graph into a `FlowDocument` and sends to Rust
-3. Rust builds a `petgraph::DiGraph`, runs toposort, detects cycles
-4. Nodes are grouped into layers by dependency depth
-5. Each layer executes sequentially; independent nodes within a layer could run in parallel
-6. Progress events stream back to the frontend via Tauri Channels, including full output data
-7. Nodes light up (blue = running, green = done, red = error) and edges animate
-8. Output previews appear inline on each node; full data available in the inspector
-
-Cancellation is instant — an `AtomicBool` flag is checked between each layer.
+The Rust backend owns graph execution: petgraph handles topological sort and cycle detection, while tokio drives async node evaluation. Each node type is a pure Rust function — no shared mutable state between nodes. The React frontend communicates with the backend exclusively via Tauri commands, keeping the execution engine fully decoupled from the UI. SQLite in WAL mode gives you safe concurrent reads while the execution engine writes live results.
 
 ## License
 
