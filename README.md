@@ -48,21 +48,26 @@ pnpm tauri build
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Desktop shell | Tauri 2 |
-| Frontend | React 19 + TypeScript strict + Vite |
-| Node graph | @xyflow/react (ReactFlow 12) |
-| Styling | Tailwind CSS 4 |
-| State | Zustand 5 + zundo (undo/redo) |
-| Backend | Rust + tokio async runtime |
-| Graph engine | petgraph (toposort, cycle detection) |
-| Database | rusqlite (WAL mode, bundled SQLite) |
-| Tests | Vitest |
+| Layer         | Technology                           |
+| ------------- | ------------------------------------ |
+| Desktop shell | Tauri 2                              |
+| Frontend      | React 19 + TypeScript strict + Vite  |
+| Node graph    | @xyflow/react (ReactFlow 12)         |
+| Styling       | Tailwind CSS 4                       |
+| State         | Zustand 5 + zundo (undo/redo)        |
+| Backend       | Rust + tokio async runtime           |
+| Graph engine  | petgraph (toposort, cycle detection) |
+| Database      | rusqlite (WAL mode, bundled SQLite)  |
+| Tests         | Vitest                               |
 
 ## Architecture
 
 The Rust backend owns graph execution: petgraph handles topological sort and cycle detection, while tokio drives async node evaluation. Each node type is a pure Rust function — no shared mutable state between nodes. The React frontend communicates with the backend exclusively via Tauri commands, keeping the execution engine fully decoupled from the UI. SQLite in WAL mode gives you safe concurrent reads while the execution engine writes live results.
+
+## Release Docs
+
+- [Launch Contract](docs/launch-contract.md)
+- [Release Readiness](docs/release-readiness.md)
 
 ## License
 
