@@ -48,7 +48,7 @@ This checks Gatekeeper acceptance for the DMG and app bundle, then verifies the 
 - Release workflow builds macOS artifacts from a frozen lockfile.
 - GitHub Release publishing remains manual for `v1.0.0`.
 - Uploaded workflow artifacts should be used to assemble the final release draft.
-- The unsigned local bundle should produce `SignalFlow_1.0.0_aarch64.dmg`, `SignalFlow.app.tar.gz`, `SHA256SUMS.txt`, and `RELEASE_NOTES.md`.
+- The unsigned local bundle should produce `SignalFlow_1.0.0_<architecture>.dmg`, `SignalFlow.app.tar.gz`, `SHA256SUMS.txt`, and `RELEASE_NOTES.md`.
 
 ## Recommended RC rehearsal
 
