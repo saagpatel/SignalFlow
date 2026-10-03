@@ -60,7 +60,10 @@ pnpm test src/lib/connectionValidator.test.ts
 For the broader required lane, use `pnpm verify`. The authoritative commands are
 [`.codex/verify.commands`](.codex/verify.commands); the runner starts each command
 from the repository root. It covers Git guards, lint, types, tests/coverage,
-frontend build, docs, Rust checks, and performance measurements. On a feature
+frontend build, docs, Rust checks, and performance measurements. The local
+secret guard requires `gitleaks` on `PATH` with support for
+`gitleaks protect --staged --redact`; without it, local `pnpm verify` and commit
+hooks fail. Install a compatible gitleaks CLI before using that lane. On a feature
 branch, stage only your own changes before the Git guards. Required CI budgets
 and diff coverage remain separate gates; local measurements are not a waiver.
 
