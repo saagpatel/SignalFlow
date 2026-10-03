@@ -8,12 +8,12 @@ SignalFlow is a visual dataflow programming desktop app. Think Unreal Blueprints
 
 ## Features
 
-- **Node canvas** — drag, connect, and configure nodes with a ReactFlow-powered graph editor; undo/redo everything
+- **Node canvas** — drag, connect, and configure nodes with a ReactFlow-powered graph editor; undo/redo node and edge changes
 - **Rich node library** — file I/O, JSON parsing, HTTP requests, regex transforms, conditional routing, and Ollama prompt/chat nodes
 - **Live execution** — watch data animate through your graph in real time; inline previews and a collapsible JSON inspector show exactly what's flowing
 - **Pre-run validation** — misconfigured nodes are flagged before execution so you catch mistakes early
 - **Flow management** — create, open, save, and delete multiple flows from a welcome screen or command palette
-- **Persistent storage** — all flows auto-save to a local SQLite database in WAL mode; dark and light themes included
+- **Persistent storage** — dirty, non-empty flows auto-save from the editor to a local SQLite database in WAL mode when auto-save is enabled; dark and light themes included
 
 ## Quick Start
 
@@ -68,8 +68,9 @@ branch, stage only your own changes before the Git guards. Required CI budgets
 and diff coverage remain separate gates; local measurements are not a waiver.
 
 For focused Rust checks, run `cargo test --lib` from `src-tauri`. The full
-`cargo test` suite also uses local HTTP/file fixtures; existing ignored Ollama
-tests are a separate capability lane. Do not enable ignored tests or use live
+`cargo test` suite uses local HTTP/file fixtures but also attempts an HTTP
+request to an external hostname and non-ignored Ollama calls; ignored Ollama
+tests add further live coverage. Do not run the full suite, enable ignored tests, or use live
 LLM/HTTP/file nodes merely to verify documentation. Native checks need the stable
 Rust toolchain with rustfmt/Clippy and macOS Tauri build prerequisites. CI also
 builds and validates a macOS bundle; frontend `pnpm build` alone does not do that.
@@ -97,7 +98,7 @@ out of fixtures.
 
 ## Architecture
 
-The Rust backend owns graph execution: petgraph handles topological sort and cycle detection, while tokio drives async node evaluation. Each node type is a pure Rust function — no shared mutable state between nodes. The React frontend communicates with the backend exclusively via Tauri commands, keeping the execution engine fully decoupled from the UI. SQLite in WAL mode gives you safe concurrent reads while the execution engine writes live results.
+The Rust backend owns graph execution: petgraph handles topological sort and cycle detection, while tokio drives async node evaluation. Node types implement the Rust `NodeExecutor` trait and share an `ExecutionContext` containing outputs, cancellation state, and the current node ID; file and HTTP nodes perform I/O. The React frontend invokes Tauri commands and receives execution progress via a Tauri IPC channel, keeping the execution engine decoupled from the UI. SQLite uses WAL mode with a single mutex-protected connection; execution results are saved after a run completes for flows with an ID.
 
 ## Release Docs
 

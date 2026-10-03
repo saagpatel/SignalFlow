@@ -11,6 +11,7 @@
 
 - Visual workflow editor with palette, inspector, execution panel, welcome screen, save/open/delete, command palette, undo/redo, and SQLite-backed persistence
 - Local execution engine in Rust with progress events, cancellation support, execution logs, and output inspection
+  - Known gap: `stop_execution` currently cannot interrupt an in-progress run (engine lock held for the whole execution).
 - Node library that includes input, transform, output, control, AI, and code categories
 - Settings that control Ollama endpoint, theme, and auto-save interval
 
