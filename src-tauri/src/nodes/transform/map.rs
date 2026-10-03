@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use crate::engine::context::ExecutionContext;
 use crate::error::AppError;
 use crate::nodes::NodeExecutor;
-use crate::sandbox::evaluate_expression_with_scope;
+use crate::sandbox::evaluate_expression_with_scope_cancellable;
 use crate::types::NodeValue;
 
 pub struct MapExecutor;
@@ -34,11 +34,14 @@ impl NodeExecutor for MapExecutor {
         // Evaluate expression for each item
         let mut mapped = Vec::new();
         for (index, item) in input.into_iter().enumerate() {
+            if ctx.is_cancelled() {
+                return Err(AppError::Cancelled);
+            }
             let mut scope = HashMap::new();
             scope.insert("item".to_string(), item.clone());
             scope.insert("index".to_string(), NodeValue::Number(index as f64));
 
-            match evaluate_expression_with_scope(expression, scope) {
+            match evaluate_expression_with_scope_cancellable(expression, scope, &ctx.cancelled) {
                 Ok(result) => {
                     mapped.push(result);
                 }

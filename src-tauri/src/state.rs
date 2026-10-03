@@ -1,3 +1,4 @@
+use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -9,6 +10,10 @@ pub const DEFAULT_OLLAMA_ENDPOINT: &str = "http://localhost:11434";
 
 pub struct AppState {
     pub engine: Arc<Mutex<Engine>>,
+    /// Stop generation. Runs capture it before waiting on the engine lock,
+    /// which `execute_flow` holds for the whole run; `stop_execution` bumps it
+    /// without taking that lock.
+    pub stop_generation: Arc<AtomicU64>,
     pub db: Arc<Database>,
 }
 
@@ -17,6 +22,7 @@ impl AppState {
         let db = Database::open(&db_path)?;
         Ok(Self {
             engine: Arc::new(Mutex::new(Engine::new())),
+            stop_generation: Arc::new(AtomicU64::new(0)),
             db: Arc::new(db),
         })
     }

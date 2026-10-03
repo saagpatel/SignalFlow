@@ -1,6 +1,7 @@
 use tauri::ipc::Channel;
 use tauri::State;
 
+use crate::engine::context::CancelToken;
 use crate::error::AppError;
 use crate::state::AppState;
 use crate::types::*;
@@ -14,8 +15,11 @@ pub async fn execute_flow(
     let mut flow = flow;
     inject_ollama_endpoint(&mut flow, &state.ollama_endpoint(None)?);
 
+    // Capture the stop generation before waiting on the lock, so a Stop
+    // pressed while this run is queued still cancels it.
+    let cancel = CancelToken::for_run(state.stop_generation.clone());
     let engine = state.engine.lock().await;
-    let result = engine.execute(&flow, &on_progress).await?;
+    let result = engine.execute(&flow, &on_progress, cancel).await?;
 
     // Save execution history — log failures but don't block the response
     if let Some(ref flow_id) = flow.id {
@@ -29,8 +33,9 @@ pub async fn execute_flow(
 
 #[tauri::command]
 pub async fn stop_execution(state: State<'_, AppState>) -> Result<(), AppError> {
-    let engine = state.engine.lock().await;
-    engine.cancel();
+    state
+        .stop_generation
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     Ok(())
 }
 

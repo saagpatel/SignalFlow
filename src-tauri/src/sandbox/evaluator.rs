@@ -2,13 +2,23 @@ use std::collections::HashMap;
 
 use rquickjs::{Context, Runtime, Value as JsValue};
 
+use crate::engine::context::CancelToken;
 use crate::types::NodeValue;
 
 /// Evaluate a JavaScript expression with a single 'input' variable
 pub fn evaluate_expression(code: &str, input: &NodeValue) -> Result<NodeValue, String> {
+    evaluate_expression_cancellable(code, input, &CancelToken::default())
+}
+
+/// Like [`evaluate_expression`], but aborts the script once `cancel` fires.
+pub fn evaluate_expression_cancellable(
+    code: &str,
+    input: &NodeValue,
+    cancel: &CancelToken,
+) -> Result<NodeValue, String> {
     let mut vars = HashMap::new();
     vars.insert("input".to_string(), input.clone());
-    evaluate_expression_with_scope(code, vars)
+    evaluate_expression_with_scope_cancellable(code, vars, cancel)
 }
 
 /// Evaluate a JavaScript expression with custom scope variables
@@ -16,11 +26,24 @@ pub fn evaluate_expression_with_scope(
     code: &str,
     variables: HashMap<String, NodeValue>,
 ) -> Result<NodeValue, String> {
+    evaluate_expression_with_scope_cancellable(code, variables, &CancelToken::default())
+}
+
+/// Like [`evaluate_expression_with_scope`], but aborts the script once `cancel`
+/// fires. QuickJS runs synchronously, so the interrupt handler is the only way
+/// to stop a long or non-terminating script.
+pub fn evaluate_expression_with_scope_cancellable(
+    code: &str,
+    variables: HashMap<String, NodeValue>,
+    cancel: &CancelToken,
+) -> Result<NodeValue, String> {
     if code.trim().is_empty() {
         return Err("Expression is empty".to_string());
     }
 
     let runtime = Runtime::new().map_err(|e| format!("Failed to create JS runtime: {}", e))?;
+    let interrupt = cancel.clone();
+    runtime.set_interrupt_handler(Some(Box::new(move || interrupt.is_cancelled())));
     let context =
         Context::full(&runtime).map_err(|e| format!("Failed to create JS context: {}", e))?;
     let wrapped_code = wrap_code_for_execution(code);
@@ -207,5 +230,24 @@ mod tests {
         let result = evaluate_expression("return undefined_var * 2", &input);
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn cancellation_interrupts_a_non_terminating_script() {
+        let generation = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let token = CancelToken::for_run(generation.clone());
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            generation.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        });
+
+        let started = std::time::Instant::now();
+        // Trailing `;` keeps this a statement body, so the loop really runs.
+        let result = evaluate_expression_cancellable("while (true) {};", &NodeValue::Null, &token);
+
+        assert!(result.is_err());
+        // The script must have run until Stop, not failed up front.
+        assert!(started.elapsed() >= std::time::Duration::from_millis(50));
+        assert!(started.elapsed() < std::time::Duration::from_secs(5));
     }
 }

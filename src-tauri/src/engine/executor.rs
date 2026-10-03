@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Instant;
+use std::future::Future;
+use std::time::{Duration, Instant};
 
 use tauri::ipc::Channel;
 
@@ -8,13 +8,15 @@ use crate::error::AppError;
 use crate::nodes::registry::NodeRegistry;
 use crate::types::*;
 
-use super::context::ExecutionContext;
+use super::context::{CancelToken, ExecutionContext};
 use super::graph::FlowGraph;
 
 pub struct Engine {
     registry: NodeRegistry,
-    cancel_flag: Arc<std::sync::atomic::AtomicBool>,
 }
+
+/// How often an in-flight node checks whether the run was cancelled.
+const CANCEL_POLL_INTERVAL: Duration = Duration::from_millis(25);
 
 impl Default for Engine {
     fn default() -> Self {
@@ -26,32 +28,19 @@ impl Engine {
     pub fn new() -> Self {
         Self {
             registry: NodeRegistry::new(),
-            cancel_flag: Arc::new(std::sync::atomic::AtomicBool::new(false)),
         }
-    }
-
-    pub fn cancel(&self) {
-        self.cancel_flag
-            .store(true, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    pub fn reset_cancel(&self) {
-        self.cancel_flag
-            .store(false, std::sync::atomic::Ordering::Relaxed);
     }
 
     pub async fn execute(
         &self,
         doc: &FlowDocument,
         channel: &Channel<ExecutionEvent>,
+        cancel: CancelToken,
     ) -> Result<ExecutionResult, AppError> {
-        self.reset_cancel();
         let start = Instant::now();
         let flow_graph = FlowGraph::from_document(doc)?;
 
-        let mut ctx = ExecutionContext::new();
-        // Replace cancel flag with the one from the engine
-        ctx.cancelled = self.cancel_flag.clone();
+        let ctx = ExecutionContext::with_cancel_token(cancel);
 
         let node_map: HashMap<String, &FlowNode> =
             doc.nodes.iter().map(|n| (n.id.clone(), n)).collect();
@@ -65,6 +54,10 @@ impl Engine {
             }
 
             for node_id in layer {
+                if ctx.is_cancelled() {
+                    return Err(AppError::Cancelled);
+                }
+
                 let node = node_map
                     .get(node_id)
                     .ok_or_else(|| AppError::Graph(format!("Node {} not found", node_id)))?;
@@ -107,11 +100,28 @@ impl Engine {
                 ctx.set_current_node_id(Some(node_id.clone())).await;
 
                 let node_start = Instant::now();
-                let result = executor.execute(inputs, node.data.clone(), &ctx).await;
+                let node_future = executor.execute(inputs, node.data.clone(), &ctx);
+                let result = if runs_to_completion(&node.node_type) {
+                    node_future.await
+                } else {
+                    let Some(result) = run_until_cancelled(node_future, &ctx.cancelled).await
+                    else {
+                        ctx.set_current_node_id(None).await;
+                        return Err(AppError::Cancelled);
+                    };
+                    result
+                };
                 let duration_ms = node_start.elapsed().as_millis() as u64;
 
                 // Clear current node ID after execution
                 ctx.set_current_node_id(None).await;
+
+                // A synchronous node (e.g. an interrupted JS script) or a
+                // run-to-completion node can finish after Stop; report the run
+                // as cancelled rather than as a node failure.
+                if ctx.is_cancelled() {
+                    return Err(AppError::Cancelled);
+                }
 
                 match result {
                     Ok(outputs) => {
@@ -197,6 +207,28 @@ impl Engine {
     }
 }
 
+/// Nodes whose side effects must not be torn mid-flight. File writes run on a
+/// blocking thread that keeps going even if the future is dropped, so they
+/// finish and cancellation is honored before the next node instead.
+fn runs_to_completion(node_type: &str) -> bool {
+    node_type == "fileWrite"
+}
+
+/// Runs `fut` until it completes or the run is cancelled. Returns `None` on
+/// cancellation; the dropped future aborts any in-flight work (e.g. HTTP calls).
+async fn run_until_cancelled<F: Future>(fut: F, cancel: &CancelToken) -> Option<F::Output> {
+    tokio::select! {
+        output = fut => Some(output),
+        _ = wait_for_cancel(cancel) => None,
+    }
+}
+
+async fn wait_for_cancel(cancel: &CancelToken) {
+    while !cancel.is_cancelled() {
+        tokio::time::sleep(CANCEL_POLL_INTERVAL).await;
+    }
+}
+
 fn error_is_handled_by_try_catch(
     node_id: &str,
     doc: &FlowDocument,
@@ -223,6 +255,8 @@ fn error_is_handled_by_try_catch(
 mod tests {
     use super::*;
     use crate::types::{FlowEdge, FlowNode, Position, Viewport};
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::Arc;
 
     #[test]
     fn try_catch_only_downstream_marks_error_as_handled() {
@@ -258,5 +292,126 @@ mod tests {
             .collect();
 
         assert!(error_is_handled_by_try_catch("source", &doc, &node_map));
+    }
+
+    struct SlowNode;
+
+    #[async_trait::async_trait]
+    impl crate::nodes::NodeExecutor for SlowNode {
+        fn node_type(&self) -> &'static str {
+            "testSlow"
+        }
+
+        async fn execute(
+            &self,
+            _inputs: HashMap<String, NodeValue>,
+            _config: serde_json::Value,
+            _ctx: &ExecutionContext,
+        ) -> Result<HashMap<String, NodeValue>, AppError> {
+            tokio::time::sleep(Duration::from_secs(30)).await;
+            Ok(HashMap::new())
+        }
+    }
+
+    fn slow_flow() -> FlowDocument {
+        FlowDocument {
+            id: None,
+            name: "slow".to_string(),
+            nodes: vec![FlowNode {
+                id: "slow-1".to_string(),
+                node_type: "testSlow".to_string(),
+                position: Position::default(),
+                data: serde_json::json!({}),
+            }],
+            edges: vec![],
+            viewport: Viewport::default(),
+        }
+    }
+
+    fn engine_with_slow_node() -> Engine {
+        let mut engine = Engine::new();
+        engine.registry.register(Box::new(SlowNode));
+        engine
+    }
+
+    fn silent_channel() -> Channel<ExecutionEvent> {
+        Channel::new(|_| Ok(()))
+    }
+
+    #[tokio::test]
+    async fn stop_interrupts_a_running_node() {
+        let generation = Arc::new(AtomicU64::new(0));
+        let token = CancelToken::for_run(generation.clone());
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            generation.fetch_add(1, Ordering::Relaxed);
+        });
+
+        let started = Instant::now();
+        let result = engine_with_slow_node()
+            .execute(&slow_flow(), &silent_channel(), token)
+            .await;
+
+        assert!(matches!(result, Err(AppError::Cancelled)));
+        assert!(started.elapsed() < Duration::from_secs(5));
+    }
+
+    #[tokio::test]
+    async fn stop_before_the_run_starts_is_not_lost() {
+        let generation = Arc::new(AtomicU64::new(0));
+        // execute_flow captures the token before waiting on the engine lock...
+        let token = CancelToken::for_run(generation.clone());
+        // ...and Stop lands while it waits.
+        generation.fetch_add(1, Ordering::Relaxed);
+
+        let result = engine_with_slow_node()
+            .execute(&slow_flow(), &silent_channel(), token)
+            .await;
+
+        assert!(matches!(result, Err(AppError::Cancelled)));
+    }
+
+    #[tokio::test]
+    async fn a_new_run_is_not_cancelled_by_an_earlier_stop() {
+        let generation = Arc::new(AtomicU64::new(0));
+        generation.fetch_add(1, Ordering::Relaxed);
+        let token = CancelToken::for_run(generation);
+        assert!(!token.is_cancelled());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn stop_interrupts_a_runaway_code_node_as_cancelled() {
+        let generation = Arc::new(AtomicU64::new(0));
+        let token = CancelToken::for_run(generation.clone());
+        // The JS sandbox blocks its worker, so signal Stop from a plain thread.
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(100));
+            generation.fetch_add(1, Ordering::Relaxed);
+        });
+        let flow = FlowDocument {
+            id: None,
+            name: "runaway".to_string(),
+            nodes: vec![FlowNode {
+                id: "code-1".to_string(),
+                node_type: "code".to_string(),
+                position: Position::default(),
+                data: serde_json::json!({ "code": "while (true) {};" }),
+            }],
+            edges: vec![],
+            viewport: Viewport::default(),
+        };
+
+        let started = Instant::now();
+        let result = Engine::new().execute(&flow, &silent_channel(), token).await;
+
+        assert!(matches!(result, Err(AppError::Cancelled)));
+        assert!(started.elapsed() >= Duration::from_millis(100));
+        assert!(started.elapsed() < Duration::from_secs(5));
+    }
+
+    #[tokio::test]
+    async fn run_until_cancelled_returns_output_when_not_cancelled() {
+        let out = run_until_cancelled(async { 42 }, &CancelToken::default()).await;
+        assert_eq!(out, Some(42));
     }
 }
