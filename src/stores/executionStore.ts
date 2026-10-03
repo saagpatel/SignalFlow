@@ -72,8 +72,7 @@ export const useExecutionStore = create<ExecutionState>()((set) => ({
       logs: [...s.logs, { ...entry, timestamp: Date.now() }],
     })),
 
-  completeExecution: (duration) =>
-    set({ status: "complete", duration }),
+  completeExecution: (duration) => set({ status: "complete", duration }),
 
   failExecution: (error) =>
     set((s) => ({
@@ -84,7 +83,17 @@ export const useExecutionStore = create<ExecutionState>()((set) => ({
       ],
     })),
 
-  cancelExecution: () => set({ status: "cancelled" }),
+  cancelExecution: () =>
+    set((s) => ({
+      status: "cancelled",
+      // A node interrupted mid-run never reports completion; clear its spinner.
+      nodeStatuses: Object.fromEntries(
+        Object.entries(s.nodeStatuses).map(([id, status]) => [
+          id,
+          status === "running" ? "idle" : status,
+        ]),
+      ),
+    })),
 
   reset: () =>
     set({

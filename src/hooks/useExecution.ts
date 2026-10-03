@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useFlowStore } from "../stores/flowStore";
 import { useExecutionStore } from "../stores/executionStore";
 import { useProjectStore } from "../stores/projectStore";
@@ -30,6 +30,9 @@ export function useExecution() {
   const flowName = useProjectStore((s) => s.currentFlowName);
   const flowId = useProjectStore((s) => s.currentFlowId);
   const { toast } = useToast();
+  // Identifies the current run. Stop and each new run bump it, so results and
+  // progress events that arrive late from an earlier run are ignored.
+  const runIdRef = useRef(0);
 
   const run = useCallback(async () => {
     if (executionStatus === "running") return;
@@ -55,6 +58,8 @@ export function useExecution() {
       setValidationWarnings({});
     }
 
+    const runId = ++runIdRef.current;
+    const isCurrentRun = () => runIdRef.current === runId;
     startExecution();
     addLog({ level: "info", message: "Execution started" });
 
@@ -78,6 +83,7 @@ export function useExecution() {
     };
 
     const handleEvent = (event: ExecutionEvent) => {
+      if (!isCurrentRun()) return;
       switch (event.type) {
         case "NodeStarted":
           if (event.node_id) {
@@ -122,6 +128,7 @@ export function useExecution() {
 
     try {
       const result = await executeFlow(flow, handleEvent);
+      if (!isCurrentRun()) return;
       if (result.success) {
         completeExecution(result.total_duration_ms);
         addLog({
@@ -142,6 +149,9 @@ export function useExecution() {
         });
       }
     } catch (e) {
+      // A stopped or superseded run rejects late (e.g. "Execution cancelled");
+      // stop() has already updated the UI.
+      if (!isCurrentRun()) return;
       const msg = e instanceof Error ? e.message : String(e);
       failExecution(msg);
       addLog({ level: "error", message: `Execution failed: ${msg}` });
@@ -166,6 +176,7 @@ export function useExecution() {
   ]);
 
   const stop = useCallback(async () => {
+    runIdRef.current++;
     try {
       await stopExecution();
       cancelExecution();
