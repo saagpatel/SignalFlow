@@ -1,15 +1,39 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::error::AppError;
 use crate::types::NodeValue;
 
+/// Per-run cancellation. A run captures the stop generation when it is
+/// requested; any later stop request (a generation bump) cancels it. Unlike a
+/// shared boolean, nothing can reset a stop that arrived before the run began.
+#[derive(Clone, Default)]
+pub struct CancelToken {
+    generation: Arc<AtomicU64>,
+    started_at: u64,
+}
+
+impl CancelToken {
+    /// A token for a run starting now against the shared stop generation.
+    pub fn for_run(generation: Arc<AtomicU64>) -> Self {
+        let started_at = generation.load(Ordering::Relaxed);
+        Self {
+            generation,
+            started_at,
+        }
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        self.generation.load(Ordering::Relaxed) != self.started_at
+    }
+}
+
 #[derive(Default)]
 pub struct ExecutionContext {
     pub node_outputs: Arc<RwLock<HashMap<String, HashMap<String, NodeValue>>>>,
-    pub cancelled: Arc<AtomicBool>,
+    pub cancelled: CancelToken,
     pub current_node_id: Arc<RwLock<Option<String>>>,
 }
 
@@ -17,17 +41,20 @@ impl ExecutionContext {
     pub fn new() -> Self {
         Self {
             node_outputs: Arc::new(RwLock::new(HashMap::new())),
-            cancelled: Arc::new(AtomicBool::new(false)),
+            cancelled: CancelToken::default(),
             current_node_id: Arc::new(RwLock::new(None)),
         }
     }
 
-    pub fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::Relaxed)
+    pub fn with_cancel_token(cancelled: CancelToken) -> Self {
+        Self {
+            cancelled,
+            ..Self::new()
+        }
     }
 
-    pub fn cancel(&self) {
-        self.cancelled.store(true, Ordering::Relaxed);
+    pub fn is_cancelled(&self) -> bool {
+        self.cancelled.is_cancelled()
     }
 
     pub async fn store_output(&self, node_id: &str, outputs: HashMap<String, NodeValue>) {

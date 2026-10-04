@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use crate::engine::context::ExecutionContext;
 use crate::error::AppError;
 use crate::nodes::NodeExecutor;
-use crate::sandbox::evaluate_expression;
+use crate::sandbox::evaluate_expression_cancellable;
 use crate::types::NodeValue;
 
 pub struct CodeExecutor;
@@ -35,7 +35,7 @@ impl NodeExecutor for CodeExecutor {
         }
 
         // Execute the JavaScript code
-        let result = match evaluate_expression(code, &input) {
+        let result = match evaluate_expression_cancellable(code, &input, &ctx.cancelled) {
             Ok(r) => r,
             Err(e) => return Err(ctx.error(format!("Code execution failed: {}", e)).await),
         };

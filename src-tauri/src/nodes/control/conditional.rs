@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use crate::engine::context::ExecutionContext;
 use crate::error::AppError;
 use crate::nodes::NodeExecutor;
-use crate::sandbox::evaluate_expression_with_scope;
+use crate::sandbox::evaluate_expression_with_scope_cancellable;
 use crate::types::NodeValue;
 
 pub struct ConditionalExecutor;
@@ -31,7 +31,7 @@ impl NodeExecutor for ConditionalExecutor {
             let mut scope = HashMap::new();
             scope.insert("input".to_string(), input.clone());
 
-            match evaluate_expression_with_scope(expression, scope) {
+            match evaluate_expression_with_scope_cancellable(expression, scope, &ctx.cancelled) {
                 Ok(NodeValue::Boolean(b)) => b,
                 Ok(other) => {
                     // Try to coerce to boolean
